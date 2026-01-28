@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-GMAP 実行スクリプト
+GMAP execution script
 
-使用方法:
+Usage:
     python3 run_gmap.py config.yaml
 
-設定ファイル（YAML形式）からパラメータを読み込み、
-GMAPを実行してGFF3ファイルを生成します。
+Reads parameters from the config file (YAML format)
+and runs GMAP to generate GFF3 files.
 
-必要な設定項目:
+Required settings:
     gmap:
-        query: クエリFASTAファイル（Nohit_cds.fa等）
-        output_format: 出力フォーマット（gff3_gene等）
+        query: Query FASTA file (Nohit_cds.fa etc.)
+        output_format: Output format (gff3_gene etc.)
         databases:
-            - name: データベース名（プレフィックス）
-              output: 出力GFF3ファイル名
+            - name: Database name (prefix)
+              output: Output GFF3 file name
 
     gmap_build:
-        db_dir: GMAPデータベースのディレクトリ
+        db_dir: GMAP database directory
 
     executables:
-        gmap: gmapの実行ファイルパス（オプション）
+        gmap: gmap executable path (optional)
 """
 
 import sys
@@ -32,114 +32,114 @@ import argparse
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. name自体（PATHから検索）
+    2. fallback (if specified)
+    3. name itself (searched from PATH)
 
     Args:
-        config (dict): 設定全体
-        name (str): 実行ファイル名
-        fallback (str): フォールバック値
+        config (dict): Full configuration
+        name (str): Executable name
+        fallback (str): Fallback value
 
     Returns:
-        str: 実行ファイルパス
+        str: Executable path
     """
-    # executables セクションから取得
+    # Get from executables section
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
 
-    # フォールバック値があれば使用
+    # Use fallback value if available
     if fallback:
         return fallback
 
-    # デフォルトはname自体（PATHから検索される）
+    # Default is name itself (searched from PATH)
     return name
 
 
 def load_config(config_file):
     """
-    YAML設定ファイルを読み込む
+    Load YAML config file
 
     Args:
-        config_file (str): 設定ファイルのパス
+        config_file (str): Config file path
 
     Returns:
-        dict: 設定内容
+        dict: Configuration contents
     """
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"エラー: 設定ファイル '{config_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Config file '{config_file}' not found.", file=sys.stderr)
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"エラー: 設定ファイルの読み込みに失敗しました: {e}", file=sys.stderr)
+        print(f"Error: Failed to load config file: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def validate_config(config):
     """
-    設定の妥当性をチェックする
+    Validate configuration
 
     Args:
-        config (dict): 設定内容
+        config (dict): Configuration contents
 
     Returns:
-        dict: GMAP実行設定
+        dict: GMAP execution settings
     """
     if 'gmap' not in config:
-        print("エラー: 設定ファイルに 'gmap' セクションがありません。", file=sys.stderr)
+        print("Error: 'gmap' section not found in config file.", file=sys.stderr)
         sys.exit(1)
 
     gmap_config = config['gmap']
 
-    # 必須パラメータのチェック
+    # Check required parameters
     required_params = ['query', 'databases']
     for param in required_params:
         if param not in gmap_config:
-            print(f"エラー: 必須パラメータ '{param}' が設定ファイルにありません。", file=sys.stderr)
+            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # クエリファイルの存在確認
+    # Check query file existence
     if not os.path.exists(gmap_config['query']):
-        print(f"エラー: クエリファイル '{gmap_config['query']}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Query file '{gmap_config['query']}' not found.", file=sys.stderr)
         sys.exit(1)
 
-    # databasesがリストであることをチェック
+    # Check that databases is a list
     if not isinstance(gmap_config['databases'], list):
-        print("エラー: 'databases' はリスト形式で指定してください。", file=sys.stderr)
+        print("Error: 'databases' must be specified as a list.", file=sys.stderr)
         sys.exit(1)
 
     if len(gmap_config['databases']) == 0:
-        print("エラー: 'databases' に少なくとも1つのデータベース設定が必要です。", file=sys.stderr)
+        print("Error: 'databases' must contain at least one database entry.", file=sys.stderr)
         sys.exit(1)
 
-    # gmap_buildセクションからdb_dirを取得
+    # Get db_dir from gmap_build section
     if 'gmap_build' not in config or 'db_dir' not in config['gmap_build']:
-        print("エラー: 'gmap_build.db_dir' が設定ファイルにありません。", file=sys.stderr)
+        print("Error: 'gmap_build.db_dir' not found in config file.", file=sys.stderr)
         sys.exit(1)
 
     db_dir = config['gmap_build']['db_dir']
 
-    # 各データベース設定の検証
+    # Validate each database entry
     for i, db in enumerate(gmap_config['databases']):
         if 'name' not in db:
-            print(f"エラー: databases[{i}] に 'name' がありません。", file=sys.stderr)
+            print(f"Error: databases[{i}] is missing 'name'.", file=sys.stderr)
             sys.exit(1)
         if 'output' not in db:
-            print(f"エラー: databases[{i}] に 'output' がありません。", file=sys.stderr)
+            print(f"Error: databases[{i}] is missing 'output'.", file=sys.stderr)
             sys.exit(1)
 
-        # データベースの存在確認
+        # Check database existence
         db_path = os.path.join(db_dir, db['name'])
         if not os.path.exists(db_path):
-            print(f"エラー: GMAPデータベース '{db_path}' が見つかりません。", file=sys.stderr)
-            print("先にbuild_gmap_db.pyを実行してデータベースを構築してください。", file=sys.stderr)
+            print(f"Error: GMAP database '{db_path}' not found.", file=sys.stderr)
+            print("Please run build_gmap_db.py first to build the database.", file=sys.stderr)
             sys.exit(1)
 
     return gmap_config
@@ -147,26 +147,26 @@ def validate_config(config):
 
 def build_gmap_command(config, gmap_config, db_entry):
     """
-    gmapコマンドを構築する
+    Build gmap command
 
     Args:
-        config (dict): 設定全体
-        gmap_config (dict): GMAP実行設定
-        db_entry (dict): 個別のデータベース設定
+        config (dict): Full configuration
+        gmap_config (dict): GMAP execution settings
+        db_entry (dict): Individual database entry
 
     Returns:
-        list: gmapコマンドリスト
+        list: gmap command list
     """
-    # gmapの実行ファイルパス
+    # gmap executable path
     executable = get_executable(config, 'gmap')
 
-    # データベースディレクトリ
+    # Database directory
     db_dir = config['gmap_build']['db_dir']
 
-    # 出力フォーマット（デフォルト: gff3_gene）
+    # Output format (default: gff3_gene)
     output_format = gmap_config.get('output_format', 'gff3_gene')
 
-    # コマンド構築
+    # Build command
     cmd = [
         executable,
         '-D', db_dir,
@@ -180,20 +180,20 @@ def build_gmap_command(config, gmap_config, db_entry):
 
 def run_gmap(cmd, db_entry):
     """
-    gmapを実行する
+    Run gmap
 
     Args:
-        cmd (list): gmapコマンドリスト
-        db_entry (dict): 個別のデータベース設定
+        cmd (list): gmap command list
+        db_entry (dict): Individual database entry
     """
     output_file = db_entry['output']
 
-    print(f"GMAP検索 '{db_entry['name']}' を実行しています...")
-    print(f"コマンド: {' '.join(cmd)} > {output_file}")
+    print(f"Running GMAP search '{db_entry['name']}'...")
+    print(f"Command: {' '.join(cmd)} > {output_file}")
     print("-" * 50)
 
     try:
-        # gmapの実行（出力をファイルにリダイレクト）
+        # Run gmap (redirect output to file)
         with open(output_file, 'w', encoding='utf-8') as out_f:
             result = subprocess.run(
                 cmd,
@@ -203,58 +203,58 @@ def run_gmap(cmd, db_entry):
                 text=True
             )
 
-        print(f"GMAP検索 '{db_entry['name']}' が正常に完了しました。")
-        print(f"出力ファイル: {output_file}")
+        print(f"GMAP search '{db_entry['name']}' completed successfully.")
+        print(f"Output file: {output_file}")
 
-        # 出力ファイルのサイズ確認
+        # Check output file size
         if os.path.exists(output_file):
             file_size = os.path.getsize(output_file)
-            print(f"ファイルサイズ: {file_size:,} bytes")
+            print(f"File size: {file_size:,} bytes")
 
-            # 行数カウント
+            # Count lines
             with open(output_file, 'r', encoding='utf-8') as f:
                 line_count = sum(1 for _ in f)
-            print(f"行数: {line_count:,}")
+            print(f"Number of lines: {line_count:,}")
         else:
-            print(f"警告: 出力ファイル '{output_file}' が生成されていません。")
+            print(f"Warning: Output file '{output_file}' was not generated.")
 
-        # 標準エラー出力がある場合は表示
+        # Display stderr if available
         if result.stderr:
-            print("標準エラー出力:")
+            print("Standard error:")
             print(result.stderr)
 
     except subprocess.CalledProcessError as e:
         print(
-            f"エラー: gmapの実行に失敗しました（終了コード: {e.returncode}）",
+            f"Error: gmap execution failed (exit code: {e.returncode})",
             file=sys.stderr
         )
         if e.stderr:
-            print("標準エラー出力:", file=sys.stderr)
+            print("Standard error:", file=sys.stderr)
             print(e.stderr, file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
         print(
-            f"エラー: gmapの実行ファイルが見つかりません: {cmd[0]}",
+            f"Error: gmap executable not found: {cmd[0]}",
             file=sys.stderr
         )
         print(
-            "GMAPがインストールされているか、パスが正しいか確認してください。",
+            "Please verify that GMAP is installed and the path is correct.",
             file=sys.stderr
         )
         sys.exit(1)
 
 
 def main():
-    """メイン関数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='設定ファイルからGMAPを実行してGFF3ファイルを生成する',
+        description='Run GMAP and generate GFF3 files from config file',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-使用例:
+Examples:
     python3 run_gmap.py config.yaml
     python3 run_gmap.py ../config.yaml
 
-設定ファイルの例:
+Config file example:
     gmap:
         query: "../BLASTP/Nohit_cds.fa"
         output_format: "gff3_gene"
@@ -271,50 +271,50 @@ def main():
 
     parser.add_argument(
         'config_file',
-        help='YAML形式の設定ファイルパス'
+        help='YAML config file path'
     )
 
     parser.add_argument(
         '--dry-run',
         action='store_true',
-        help='実際には実行せず、コマンドのみ表示する'
+        help='Display commands without executing them'
     )
 
     parser.add_argument(
         '--database', '-d',
-        help='特定のデータベースのみ検索する（名前で指定）'
+        help='Search only a specific database (specify by name)'
     )
 
     args = parser.parse_args()
 
-    # 設定ファイルの読み込み
+    # Load config file
     config = load_config(args.config_file)
 
-    # 設定の妥当性チェック
+    # Validate configuration
     gmap_config = validate_config(config)
 
-    # 検索対象のデータベースを決定
+    # Determine databases to search
     databases = gmap_config['databases']
     if args.database:
         databases = [db for db in databases if db['name'] == args.database]
         if not databases:
-            print(f"エラー: データベース '{args.database}' が設定ファイルに見つかりません。", file=sys.stderr)
+            print(f"Error: Database '{args.database}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
     if args.dry_run:
-        print("ドライラン モード: 以下のコマンドが実行されます:")
+        print("Dry run mode: The following commands would be executed:")
         for db_entry in databases:
             cmd = build_gmap_command(config, gmap_config, db_entry)
             print(f"  {' '.join(cmd)} > {db_entry['output']}")
         return
 
-    # GMAP検索の実行
-    print(f"検索するデータベース数: {len(databases)}")
-    print(f"クエリファイル: {gmap_config['query']}")
+    # Run GMAP searches
+    print(f"Number of databases to search: {len(databases)}")
+    print(f"Query file: {gmap_config['query']}")
     print("=" * 60)
 
     for i, db_entry in enumerate(databases):
-        print(f"\n[{i+1}/{len(databases)}] データベース: {db_entry['name']}")
+        print(f"\n[{i+1}/{len(databases)}] Database: {db_entry['name']}")
         print("=" * 60)
 
         cmd = build_gmap_command(config, gmap_config, db_entry)
@@ -323,7 +323,7 @@ def main():
         print()
 
     print("=" * 60)
-    print("すべてのGMAP検索が完了しました。")
+    print("All GMAP searches completed.")
 
 
 if __name__ == '__main__':

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-BLASTN用データベースを構築するスクリプト
+Script to build BLASTN databases
 
-使用方法:
+Usage:
     python3 build_blastn_db.py config.yaml
 
-設定ファイルのbuild_blastn_dbセクションから設定を読み込み、
-makeblastdbを実行してBLASTNデータベースを構築します。
+Reads settings from the build_blastn_db section of the config file
+and runs makeblastdb to build BLASTN databases.
 """
 
 import subprocess
@@ -17,27 +17,27 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. PATHから検索
-    4. name自体
+    2. fallback (if specified)
+    3. Search from PATH
+    4. name itself
     """
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
     if fallback:
         return fallback
-    # PATHから検索
+    # Search from PATH
     path = shutil.which(name)
     if path:
         return path
@@ -45,25 +45,25 @@ def get_executable(config, name, fallback=None):
 
 
 def build_blastn_db(config: dict) -> None:
-    """BLASTNデータベースを構築する"""
+    """Build BLASTN databases"""
     db_config = config.get('build_blastn_db', {})
 
-    # makeblastdbの実行ファイルパス（executables セクション優先）
+    # makeblastdb executable path (executables section takes priority)
     executable = get_executable(config, 'makeblastdb')
 
-    # データベースタイプ（デフォルト: nucl）
+    # Database type (default: nucl)
     dbtype = db_config.get('dbtype', 'nucl')
 
-    # 構築するデータベースのリスト
+    # List of databases to build
     databases = db_config.get('databases', [])
 
     if not databases:
-        print("エラー: データベース設定がありません", file=sys.stderr)
+        print("Error: No database configuration found", file=sys.stderr)
         sys.exit(1)
 
     print(f"makeblastdb: {executable}")
-    print(f"データベースタイプ: {dbtype}")
-    print(f"構築するデータベース数: {len(databases)}")
+    print(f"Database type: {dbtype}")
+    print(f"Number of databases to build: {len(databases)}")
     print()
 
     for db in databases:
@@ -72,30 +72,30 @@ def build_blastn_db(config: dict) -> None:
         output_name = db.get('output')
 
         if not name or not input_file:
-            print(f"警告: name または input が指定されていないエントリをスキップします", file=sys.stderr)
+            print(f"Warning: Skipping entry with missing name or input", file=sys.stderr)
             continue
 
-        # 出力名が指定されていない場合は name.fna を使用
+        # Use name.fna if output name is not specified
         if not output_name:
             output_name = f"{name}.fna"
 
-        # 入力ファイルの存在確認
+        # Check input file existence
         if not os.path.exists(input_file):
-            print(f"エラー: 入力ファイルが見つかりません: {input_file}", file=sys.stderr)
+            print(f"Error: Input file not found: {input_file}", file=sys.stderr)
             sys.exit(1)
 
-        print(f"データベース構築: {name}")
-        print(f"  入力: {input_file}")
-        print(f"  出力: {output_name}")
+        print(f"Building database: {name}")
+        print(f"  Input: {input_file}")
+        print(f"  Output: {output_name}")
 
-        # makeblastdbを実行
+        # Run makeblastdb
         cmd = [
             executable,
             '-in', input_file,
             '-out', output_name,
             '-dbtype', dbtype
         ]
-        print(f"  コマンド: {' '.join(cmd)}")
+        print(f"  Command: {' '.join(cmd)}")
 
         result = subprocess.run(
             cmd,
@@ -108,26 +108,26 @@ def build_blastn_db(config: dict) -> None:
             print(result.stdout)
 
         if result.returncode != 0:
-            print(f"エラー: makeblastdbの実行に失敗しました", file=sys.stderr)
+            print(f"Error: makeblastdb execution failed", file=sys.stderr)
             if result.stderr:
                 print(f"stderr: {result.stderr}", file=sys.stderr)
             sys.exit(result.returncode)
 
-        print(f"  完了: {output_name} データベースを作成しました")
+        print(f"  Done: Created {output_name} database")
         print()
 
-    print("全てのデータベース構築が完了しました")
+    print("All database builds completed")
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 build_blastn_db.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 build_blastn_db.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

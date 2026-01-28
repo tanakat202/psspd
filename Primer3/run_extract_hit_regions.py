@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-extract_hit_regions.pyとmake_possiblePair5000.pyを実行するスクリプト
+Script to run extract_hit_regions.py and make_possiblePair5000.py
 
-使用方法:
+Usage:
     python3 run_extract_hit_regions.py config.yaml
 
-設定ファイルのextract_hit_regionsセクションから設定を読み込み、
-各種に対してPythonスクリプトを実行します。
+Reads settings from the extract_hit_regions section of the config file
+and runs Python scripts for each species.
 
-処理内容:
-1. extract_hit_regions.py: BLASTN出力からヒット領域を抽出
-2. make_possiblePair5000.py: プライマーペアの候補を抽出
+Processing:
+1. extract_hit_regions.py: Extract hit regions from BLASTN output
+2. make_possiblePair5000.py: Extract primer pair candidates
 """
 
 import subprocess
@@ -21,27 +21,27 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. PATHから検索
-    4. name自体
+    2. fallback (if specified)
+    3. Search from PATH
+    4. name itself
     """
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
     if fallback:
         return fallback
-    # PATHから検索
+    # Search from PATH
     path = shutil.which(name)
     if path:
         return path
@@ -49,9 +49,9 @@ def get_executable(config, name, fallback=None):
 
 
 def run_python_script(python_exec: str, script: str, prefix: str) -> None:
-    """Pythonスクリプトを実行する"""
+    """Run a Python script"""
     cmd = [python_exec, script, prefix]
-    print(f"  コマンド: {' '.join(cmd)}")
+    print(f"  Command: {' '.join(cmd)}")
 
     result = subprocess.run(
         cmd,
@@ -64,84 +64,84 @@ def run_python_script(python_exec: str, script: str, prefix: str) -> None:
         print(result.stdout)
 
     if result.returncode != 0:
-        print(f"エラー: {script}の実行に失敗しました", file=sys.stderr)
+        print(f"Error: {script} execution failed", file=sys.stderr)
         if result.stderr:
             print(f"stderr: {result.stderr}", file=sys.stderr)
         sys.exit(result.returncode)
 
 
 def run_extract_hit_regions(config: dict) -> None:
-    """extract_hit_regions.pyとmake_possiblePair5000.pyを実行する"""
+    """Run extract_hit_regions.py and make_possiblePair5000.py"""
     hit_config = config.get('extract_hit_regions', {})
 
-    # Pythonの実行ファイルパス（executables セクション優先）
+    # Python executable path (executables section takes priority)
     python_exec = get_executable(config, 'python3')
 
-    # スクリプトのパス
+    # Script paths
     extract_script = hit_config.get('extract_script', 'extract_hit_regions.py')
     pair_script = hit_config.get('pair_script', 'make_possiblePair5000.py')
 
-    # 処理対象の種リスト
+    # List of species to process
     targets = hit_config.get('targets', [])
 
     if not targets:
-        print("エラー: 処理対象（targets）が指定されていません", file=sys.stderr)
+        print("Error: No targets specified", file=sys.stderr)
         sys.exit(1)
 
-    # スクリプトの存在確認
+    # Check script existence
     if not os.path.exists(extract_script):
-        print(f"エラー: スクリプトが見つかりません: {extract_script}", file=sys.stderr)
+        print(f"Error: Script not found: {extract_script}", file=sys.stderr)
         sys.exit(1)
 
     if not os.path.exists(pair_script):
-        print(f"エラー: スクリプトが見つかりません: {pair_script}", file=sys.stderr)
+        print(f"Error: Script not found: {pair_script}", file=sys.stderr)
         sys.exit(1)
 
     print(f"Python: {python_exec}")
-    print(f"extract_hit_regions スクリプト: {extract_script}")
-    print(f"make_possiblePair スクリプト: {pair_script}")
-    print(f"処理対象: {len(targets)}種")
+    print(f"extract_hit_regions script: {extract_script}")
+    print(f"make_possiblePair script: {pair_script}")
+    print(f"Targets: {len(targets)} species")
     print()
 
     for target in targets:
         prefix = target.get('prefix')
 
         if not prefix:
-            print(f"警告: prefixが指定されていないエントリをスキップします", file=sys.stderr)
+            print(f"Warning: Skipping entry with missing prefix", file=sys.stderr)
             continue
 
-        # 入力ファイルの存在確認
+        # Check input file existence
         input_file = f"{prefix}.out"
         if not os.path.exists(input_file):
-            print(f"エラー: 入力ファイルが見つかりません: {input_file}", file=sys.stderr)
+            print(f"Error: Input file not found: {input_file}", file=sys.stderr)
             sys.exit(1)
 
-        print(f"処理対象: {prefix}")
+        print(f"Processing: {prefix}")
 
-        # extract_hit_regions.pyを実行
-        print(f"  1. extract_hit_regions.py を実行")
+        # Run extract_hit_regions.py
+        print(f"  1. Running extract_hit_regions.py")
         run_python_script(python_exec, extract_script, prefix)
-        print(f"     出力: {prefix}.out.tab")
+        print(f"     Output: {prefix}.out.tab")
 
-        # make_possiblePair5000.pyを実行
-        print(f"  2. make_possiblePair5000.py を実行")
+        # Run make_possiblePair5000.py
+        print(f"  2. Running make_possiblePair5000.py")
         run_python_script(python_exec, pair_script, prefix)
-        print(f"     出力: {prefix}_possiblePair2000.tab")
+        print(f"     Output: {prefix}_possiblePair2000.tab")
 
         print()
 
-    print("全ての処理が完了しました")
+    print("All processing completed")
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 run_extract_hit_regions.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 run_extract_hit_regions.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

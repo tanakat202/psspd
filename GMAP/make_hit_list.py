@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-GFF3ファイルからヒットリストを作成するスクリプト
+Script to create hit lists from GFF3 files
 
-使用方法:
+Usage:
     python3 make_hit_list.py config.yaml
 
-設定ファイル（YAML形式）からパラメータを読み込み、
-GFF3ファイルからcoverage/identityを抽出してヒットリストを作成します。
+Reads parameters from the config file (YAML format)
+and extracts coverage/identity from GFF3 files to create hit lists.
 
-必要な設定項目:
+Required settings:
     make_hit_list:
         targets:
-            - prefix: GFF3ファイルのプレフィックス
+            - prefix: GFF3 file prefix
 """
 
 import sys
@@ -23,58 +23,58 @@ import argparse
 
 def load_config(config_file):
     """
-    YAML設定ファイルを読み込む
+    Load YAML config file
 
     Args:
-        config_file (str): 設定ファイルのパス
+        config_file (str): Config file path
 
     Returns:
-        dict: 設定内容
+        dict: Configuration contents
     """
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"エラー: 設定ファイル '{config_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Config file '{config_file}' not found.", file=sys.stderr)
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"エラー: 設定ファイルの読み込みに失敗しました: {e}", file=sys.stderr)
+        print(f"Error: Failed to load config file: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def validate_config(config):
     """
-    設定の妥当性をチェックする
+    Validate configuration
 
     Args:
-        config (dict): 設定内容
+        config (dict): Configuration contents
 
     Returns:
-        dict: make_hit_list設定
+        dict: make_hit_list settings
     """
     if 'make_hit_list' not in config:
-        print("エラー: 設定ファイルに 'make_hit_list' セクションがありません。", file=sys.stderr)
+        print("Error: 'make_hit_list' section not found in config file.", file=sys.stderr)
         sys.exit(1)
 
     hit_config = config['make_hit_list']
 
     if 'targets' not in hit_config:
-        print("エラー: 'targets' が設定ファイルにありません。", file=sys.stderr)
+        print("Error: 'targets' not found in config file.", file=sys.stderr)
         sys.exit(1)
 
     if not isinstance(hit_config['targets'], list):
-        print("エラー: 'targets' はリスト形式で指定してください。", file=sys.stderr)
+        print("Error: 'targets' must be specified as a list.", file=sys.stderr)
         sys.exit(1)
 
     if len(hit_config['targets']) == 0:
-        print("エラー: 'targets' に少なくとも1つの対象を指定してください。", file=sys.stderr)
+        print("Error: 'targets' must contain at least one entry.", file=sys.stderr)
         sys.exit(1)
 
-    # 各ターゲットの検証
+    # Validate each target
     for i, target in enumerate(hit_config['targets']):
         if 'prefix' not in target:
-            print(f"エラー: targets[{i}] に 'prefix' がありません。", file=sys.stderr)
+            print(f"Error: targets[{i}] is missing 'prefix'.", file=sys.stderr)
             sys.exit(1)
 
     return hit_config
@@ -82,19 +82,19 @@ def validate_config(config):
 
 def process_gff3(prefix):
     """
-    GFF3ファイルを処理してヒットリストを作成する
+    Process GFF3 file and create hit list
 
     Args:
-        prefix (str): GFF3ファイルのプレフィックス
+        prefix (str): GFF3 file prefix
 
     Returns:
-        int: 抽出したヒット数
+        int: Number of extracted hits
     """
     input_file = f"{prefix}.gff3"
     output_file = f"{prefix}_hit.tab"
 
     if not os.path.exists(input_file):
-        print(f"エラー: 入力ファイル '{input_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Input file '{input_file}' not found.", file=sys.stderr)
         return -1
 
     hit_count = 0
@@ -123,21 +123,21 @@ def process_gff3(prefix):
         return hit_count
 
     except Exception as e:
-        print(f"エラー: ファイル処理中にエラーが発生しました: {e}", file=sys.stderr)
+        print(f"Error: An error occurred during file processing: {e}", file=sys.stderr)
         return -1
 
 
 def main():
-    """メイン関数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='GFF3ファイルからヒットリストを作成する',
+        description='Create hit lists from GFF3 files',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-使用例:
+Examples:
     python3 make_hit_list.py config.yaml
     python3 make_hit_list.py ../config.yaml
 
-設定ファイルの例:
+Config file example:
     make_hit_list:
         targets:
             - prefix: "SpeciesB"
@@ -147,53 +147,53 @@ def main():
 
     parser.add_argument(
         'config_file',
-        help='YAML形式の設定ファイルパス'
+        help='YAML config file path'
     )
 
     parser.add_argument(
         '--prefix', '-p',
-        help='特定のプレフィックスのみ処理する'
+        help='Process only a specific prefix'
     )
 
     args = parser.parse_args()
 
-    # 設定ファイルの読み込み
+    # Load config file
     config = load_config(args.config_file)
 
-    # 設定の妥当性チェック
+    # Validate configuration
     hit_config = validate_config(config)
 
-    # 処理対象を決定
+    # Determine processing targets
     targets = hit_config['targets']
     if args.prefix:
         targets = [t for t in targets if t['prefix'] == args.prefix]
         if not targets:
-            print(f"エラー: プレフィックス '{args.prefix}' が設定ファイルに見つかりません。", file=sys.stderr)
+            print(f"Error: Prefix '{args.prefix}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # 処理実行
-    print(f"処理対象数: {len(targets)}")
+    # Execute processing
+    print(f"Number of targets: {len(targets)}")
     print("=" * 60)
 
     total_hits = 0
     for i, target in enumerate(targets):
         prefix = target['prefix']
-        print(f"\n[{i+1}/{len(targets)}] 処理中: {prefix}")
+        print(f"\n[{i+1}/{len(targets)}] Processing: {prefix}")
         print("-" * 40)
-        print(f"入力ファイル: {prefix}.gff3")
-        print(f"出力ファイル: {prefix}_hit.tab")
+        print(f"Input file: {prefix}.gff3")
+        print(f"Output file: {prefix}_hit.tab")
 
         hit_count = process_gff3(prefix)
 
         if hit_count >= 0:
-            print(f"抽出したヒット数: {hit_count}")
+            print(f"Extracted hits: {hit_count}")
             total_hits += hit_count
         else:
-            print("処理に失敗しました。")
+            print("Processing failed.")
 
     print()
     print("=" * 60)
-    print(f"すべての処理が完了しました。合計ヒット数: {total_hits}")
+    print(f"All processing completed. Total hits: {total_hits}")
 
 
 if __name__ == '__main__':

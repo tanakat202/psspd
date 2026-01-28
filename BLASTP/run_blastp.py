@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-BLASTP実行スクリプト
+BLASTP execution script
 
-使用方法:
+Usage:
     python3 run_blastp.py config.yaml
 
-設定ファイル（YAML形式）からBLASTPのパラメータを読み込み、
-BLASTPを実行します。
+Reads BLASTP parameters from the config file (YAML format)
+and runs BLASTP.
 
-必要な設定項目:
+Required settings:
     blastp:
-        database: データベースファイルパス
-        query: クエリファイルパス
-        output: 出力ファイルパス
-        evalue: E-value閾値（オプション、デフォルト: 1E-5）
-        outfmt: 出力フォーマット（オプション、デフォルト: 6）
-        num_threads: スレッド数（オプション、デフォルト: 4）
-        executable: BLASTPの実行ファイルパス（オプション）
+        database: Database file path
+        query: Query file path
+        output: Output file path
+        evalue: E-value threshold (optional, default: 1E-5)
+        outfmt: Output format (optional, default: 6)
+        num_threads: Number of threads (optional, default: 4)
+        executable: BLASTP executable path (optional)
 """
 
 import sys
@@ -29,214 +29,214 @@ from pathlib import Path
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. name自体（PATHから検索）
+    2. fallback (if specified)
+    3. name itself (searched from PATH)
 
     Args:
-        config (dict): 設定全体
-        name (str): 実行ファイル名
-        fallback (str): フォールバック値
+        config (dict): Full configuration
+        name (str): Executable name
+        fallback (str): Fallback value
 
     Returns:
-        str: 実行ファイルパス
+        str: Executable path
     """
-    # executables セクションから取得
+    # Get from executables section
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
 
-    # フォールバック値があれば使用
+    # Use fallback value if available
     if fallback:
         return fallback
 
-    # デフォルトはname自体（PATHから検索される）
+    # Default is name itself (searched from PATH)
     return name
 
 
 def load_config(config_file):
     """
-    YAML設定ファイルを読み込む
-    
+    Load YAML config file
+
     Args:
-        config_file (str): 設定ファイルのパス
-        
+        config_file (str): Config file path
+
     Returns:
-        dict: 設定内容
+        dict: Configuration contents
     """
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"エラー: 設定ファイル '{config_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Config file '{config_file}' not found.", file=sys.stderr)
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"エラー: 設定ファイルの読み込みに失敗しました: {e}", file=sys.stderr)
+        print(f"Error: Failed to load config file: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def validate_blastp_config(config):
     """
-    BLASTP設定の妥当性をチェックする
-    
+    Validate BLASTP configuration
+
     Args:
-        config (dict): 設定内容
-        
+        config (dict): Configuration contents
+
     Returns:
-        dict: BLASTP設定
+        dict: BLASTP settings
     """
     if 'blastp' not in config:
-        print("エラー: 設定ファイルに 'blastp' セクションがありません。", file=sys.stderr)
+        print("Error: 'blastp' section not found in config file.", file=sys.stderr)
         sys.exit(1)
-    
+
     blastp_config = config['blastp']
-    
-    # 必須パラメータのチェック
+
+    # Check required parameters
     required_params = ['database', 'query', 'output']
     for param in required_params:
         if param not in blastp_config:
-            print(f"エラー: 必須パラメータ '{param}' が設定ファイルにありません。", file=sys.stderr)
+            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
-    
-    # データベースファイルの存在チェック
+
+    # Check database file existence
     if not os.path.exists(blastp_config['database']):
-        print(f"エラー: データベースファイル '{blastp_config['database']}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Database file '{blastp_config['database']}' not found.", file=sys.stderr)
         sys.exit(1)
-    
-    # クエリファイルの存在チェック
+
+    # Check query file existence
     if not os.path.exists(blastp_config['query']):
-        print(f"エラー: クエリファイル '{blastp_config['query']}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Query file '{blastp_config['query']}' not found.", file=sys.stderr)
         sys.exit(1)
-    
-    # 出力ディレクトリの作成
+
+    # Create output directory
     output_dir = os.path.dirname(blastp_config['output'])
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
-        print(f"出力ディレクトリを作成しました: {output_dir}")
-    
+        print(f"Created output directory: {output_dir}")
+
     return blastp_config
 
 
 def build_blastp_command(config, blastp_config):
     """
-    BLASTPコマンドを構築する
+    Build BLASTP command
 
     Args:
-        config (dict): 設定全体
-        blastp_config (dict): BLASTP設定
+        config (dict): Full configuration
+        blastp_config (dict): BLASTP settings
 
     Returns:
-        list: BLASTPコマンドリスト
+        list: BLASTP command list
     """
-    # BLASTPの実行ファイルパス（executables セクション優先）
+    # BLASTP executable path (executables section takes priority)
     executable = get_executable(config, 'blastp')
-    
-    # 基本コマンド構築
+
+    # Build basic command
     cmd = [
         executable,
         '-db', blastp_config['database'],
         '-query', blastp_config['query'],
         '-out', blastp_config['output']
     ]
-    
-    # オプションパラメータの追加
+
+    # Add optional parameters
     if 'evalue' in blastp_config:
         cmd.extend(['-evalue', str(blastp_config['evalue'])])
-    
+
     if 'outfmt' in blastp_config:
         cmd.extend(['-outfmt', str(blastp_config['outfmt'])])
-    
+
     if 'num_threads' in blastp_config:
         cmd.extend(['-num_threads', str(blastp_config['num_threads'])])
-    
+
     return cmd
 
 
 def run_blastp(cmd, blastp_config):
     """
-    BLASTPを実行する
-    
+    Run BLASTP
+
     Args:
-        cmd (list): BLASTPコマンドリスト
-        blastp_config (dict): BLASTP設定
+        cmd (list): BLASTP command list
+        blastp_config (dict): BLASTP settings
     """
-    print("BLASTPを実行しています...")
-    print(f"コマンド: {' '.join(cmd)}")
-    print(f"データベース: {blastp_config['database']}")
-    print(f"クエリ: {blastp_config['query']}")
-    print(f"出力ファイル: {blastp_config['output']}")
+    print("Running BLASTP...")
+    print(f"Command: {' '.join(cmd)}")
+    print(f"Database: {blastp_config['database']}")
+    print(f"Query: {blastp_config['query']}")
+    print(f"Output file: {blastp_config['output']}")
     print("-" * 50)
-    
+
     try:
-        # BLASTPの実行
+        # Run BLASTP
         result = subprocess.run(
             cmd,
             check=True,
             capture_output=True,
             text=True
         )
-        
-        print("BLASTPが正常に完了しました。")
-        
-        # 標準出力がある場合は表示
+
+        print("BLASTP completed successfully.")
+
+        # Display stdout if available
         if result.stdout:
-            print("標準出力:")
+            print("Standard output:")
             print(result.stdout)
-        
-        # 出力ファイルの確認
+
+        # Check output file
         if os.path.exists(blastp_config['output']):
             file_size = os.path.getsize(blastp_config['output'])
-            print(f"出力ファイル '{blastp_config['output']}' が作成されました。")
-            print(f"ファイルサイズ: {file_size:,} bytes")
-            
-            # 結果の簡単な統計
+            print(f"Output file '{blastp_config['output']}' created.")
+            print(f"File size: {file_size:,} bytes")
+
+            # Brief statistics
             try:
                 with open(blastp_config['output'], 'r') as f:
                     lines = f.readlines()
                     if lines:
-                        print(f"結果行数: {len(lines):,} 行")
-                        print("最初の数行:")
+                        print(f"Number of result lines: {len(lines):,}")
+                        print("First few lines:")
                         for i, line in enumerate(lines[:3]):
                             print(f"  {i+1}: {line.strip()}")
                         if len(lines) > 3:
                             print("  ...")
                     else:
-                        print("出力ファイルは空です。")
+                        print("Output file is empty.")
             except Exception as e:
-                print(f"出力ファイルの読み込みエラー: {e}")
+                print(f"Error reading output file: {e}")
         else:
-            print(f"警告: 出力ファイル '{blastp_config['output']}' が見つかりません。")
-            
+            print(f"Warning: Output file '{blastp_config['output']}' not found.")
+
     except subprocess.CalledProcessError as e:
-        print(f"エラー: BLASTPの実行に失敗しました（終了コード: {e.returncode}）", file=sys.stderr)
+        print(f"Error: BLASTP execution failed (exit code: {e.returncode})", file=sys.stderr)
         if e.stdout:
-            print("標準出力:", file=sys.stderr)
+            print("Standard output:", file=sys.stderr)
             print(e.stdout, file=sys.stderr)
         if e.stderr:
-            print("標準エラー出力:", file=sys.stderr)
+            print("Standard error:", file=sys.stderr)
             print(e.stderr, file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
-        print(f"エラー: BLASTPの実行ファイルが見つかりません: {cmd[0]}", file=sys.stderr)
-        print("BLASTPがインストールされているか、パスが正しいか確認してください。", file=sys.stderr)
+        print(f"Error: BLASTP executable not found: {cmd[0]}", file=sys.stderr)
+        print("Please verify that BLASTP is installed and the path is correct.", file=sys.stderr)
         sys.exit(1)
 
 
 def main():
-    """メイン関数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='設定ファイルからBLASTPを実行する',
+        description='Run BLASTP from config file',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-使用例:
+Examples:
     python3 run_blastp.py config.yaml
     python3 run_blastp.py ../config.yaml
 
-設定ファイルの例:
+Config file example:
     blastp:
         database: "BLASTP/all_aa.fasta"
         query: "BLASTP/all_aa.fasta"
@@ -244,38 +244,38 @@ def main():
         evalue: "1E-5"
         outfmt: 6
         num_threads: 4
-        executable: "/path/to/blastp"  # オプション
+        executable: "/path/to/blastp"  # Optional
         """
     )
-    
+
     parser.add_argument(
         'config_file',
-        help='YAML形式の設定ファイルパス'
+        help='YAML config file path'
     )
-    
+
     parser.add_argument(
         '--dry-run',
         action='store_true',
-        help='実際には実行せず、コマンドのみ表示する'
+        help='Display commands without executing them'
     )
-    
+
     args = parser.parse_args()
-    
-    # 設定ファイルの読み込み
+
+    # Load config file
     config = load_config(args.config_file)
-    
-    # BLASTP設定の妥当性チェック
+
+    # Validate BLASTP configuration
     blastp_config = validate_blastp_config(config)
 
-    # BLASTPコマンドの構築
+    # Build BLASTP command
     cmd = build_blastp_command(config, blastp_config)
-    
+
     if args.dry_run:
-        print("ドライラン モード: 以下のコマンドが実行されます:")
+        print("Dry run mode: The following command would be executed:")
         print(' '.join(cmd))
         return
-    
-    # BLASTPの実行
+
+    # Run BLASTP
     run_blastp(cmd, blastp_config)
 
 

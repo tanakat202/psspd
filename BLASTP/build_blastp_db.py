@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-BLASTP データベース構築スクリプト
+BLASTP database build script
 
-使用方法:
+Usage:
     python3 build_blastp_db.py config.yaml
 
-設定ファイル（YAML形式）からパラメータを読み込み、
-FASTAファイルの結合とBLASTPデータベースの構築を実行します。
+Reads parameters from the config file (YAML format)
+and performs FASTA file concatenation and BLASTP database construction.
 
-必要な設定項目:
+Required settings:
     build_blastp_db:
-        input_files: FASTAファイルのリスト
-        output_fasta: 結合後のFASTAファイルパス
-        makeblastdb_executable: makeblastdbの実行ファイルパス（オプション）
-        dbtype: データベースタイプ（デフォルト: prot）
+        input_files: List of FASTA files
+        output_fasta: Concatenated FASTA file path
+        makeblastdb_executable: makeblastdb executable path (optional)
+        dbtype: Database type (default: prot)
 """
 
 import sys
@@ -26,194 +26,194 @@ import argparse
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. name自体（PATHから検索）
+    2. fallback (if specified)
+    3. name itself (searched from PATH)
 
     Args:
-        config (dict): 設定全体
-        name (str): 実行ファイル名
-        fallback (str): フォールバック値
+        config (dict): Full configuration
+        name (str): Executable name
+        fallback (str): Fallback value
 
     Returns:
-        str: 実行ファイルパス
+        str: Executable path
     """
-    # executables セクションから取得
+    # Get from executables section
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
 
-    # フォールバック値があれば使用
+    # Use fallback value if available
     if fallback:
         return fallback
 
-    # デフォルトはname自体（PATHから検索される）
+    # Default is name itself (searched from PATH)
     return name
 
 
 def load_config(config_file):
     """
-    YAML設定ファイルを読み込む
-    
+    Load YAML config file
+
     Args:
-        config_file (str): 設定ファイルのパス
-        
+        config_file (str): Config file path
+
     Returns:
-        dict: 設定内容
+        dict: Configuration contents
     """
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"エラー: 設定ファイル '{config_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Config file '{config_file}' not found.", file=sys.stderr)
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"エラー: 設定ファイルの読み込みに失敗しました: {e}", file=sys.stderr)
+        print(f"Error: Failed to load config file: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def validate_config(config):
     """
-    設定の妥当性をチェックする
-    
+    Validate configuration
+
     Args:
-        config (dict): 設定内容
-        
+        config (dict): Configuration contents
+
     Returns:
-        dict: データベース構築設定
+        dict: Database build settings
     """
     if 'build_blastp_db' not in config:
-        print("エラー: 設定ファイルに 'build_blastp_db' セクションがありません。", file=sys.stderr)
+        print("Error: 'build_blastp_db' section not found in config file.", file=sys.stderr)
         sys.exit(1)
-    
+
     db_config = config['build_blastp_db']
-    
-    # 必須パラメータのチェック
+
+    # Check required parameters
     required_params = ['input_files', 'output_fasta']
     for param in required_params:
         if param not in db_config:
-            print(f"エラー: 必須パラメータ '{param}' が設定ファイルにありません。", file=sys.stderr)
+            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
-    
-    # 入力ファイルの存在チェック
+
+    # Check input files
     input_files = db_config['input_files']
     if not isinstance(input_files, list):
-        print("エラー: 'input_files' はリスト形式で指定してください。", file=sys.stderr)
+        print("Error: 'input_files' must be specified as a list.", file=sys.stderr)
         sys.exit(1)
-    
+
     for input_file in input_files:
         if not os.path.exists(input_file):
-            print(f"エラー: 入力ファイル '{input_file}' が見つかりません。", file=sys.stderr)
+            print(f"Error: Input file '{input_file}' not found.", file=sys.stderr)
             sys.exit(1)
-    
-    # 出力ディレクトリの作成
+
+    # Create output directory
     output_dir = os.path.dirname(db_config['output_fasta'])
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
-        print(f"出力ディレクトリを作成しました: {output_dir}")
-    
+        print(f"Created output directory: {output_dir}")
+
     return db_config
 
 
 def concatenate_fasta_files(input_files, output_fasta):
     """
-    複数のFASTAファイルを結合する
-    
+    Concatenate multiple FASTA files
+
     Args:
-        input_files (list): 入力FASTAファイルのリスト
-        output_fasta (str): 出力FASTAファイルパス
+        input_files (list): List of input FASTA files
+        output_fasta (str): Output FASTA file path
     """
-    print("FASTAファイルを結合しています...")
-    print(f"入力ファイル: {', '.join(input_files)}")
-    print(f"出力ファイル: {output_fasta}")
+    print("Concatenating FASTA files...")
+    print(f"Input files: {', '.join(input_files)}")
+    print(f"Output file: {output_fasta}")
     print("-" * 50)
-    
+
     try:
         with open(output_fasta, 'w', encoding='utf-8') as outfile:
             for i, input_file in enumerate(input_files):
-                print(f"処理中: {input_file} ({i+1}/{len(input_files)})")
-                
+                print(f"Processing: {input_file} ({i+1}/{len(input_files)})")
+
                 with open(input_file, 'r', encoding='utf-8') as infile:
-                    # ファイルの内容を読み込んで出力ファイルに書き込み
+                    # Read file contents and write to output file
                     content = infile.read()
                     outfile.write(content)
-                    
-                    # 最後のファイルでない場合、改行を追加
+
+                    # Add newline if not the last file
                     if not content.endswith('\n'):
                         outfile.write('\n')
-        
-        # 結合結果の確認
+
+        # Verify concatenation result
         if os.path.exists(output_fasta):
             file_size = os.path.getsize(output_fasta)
-            print("結合が完了しました。")
-            print(f"出力ファイル: {output_fasta}")
-            print(f"ファイルサイズ: {file_size:,} bytes")
-            
-            # 配列数をカウント
+            print("Concatenation completed.")
+            print(f"Output file: {output_fasta}")
+            print(f"File size: {file_size:,} bytes")
+
+            # Count sequences
             try:
                 with open(output_fasta, 'r', encoding='utf-8') as f:
                     sequence_count = sum(
                         1 for line in f if line.startswith('>')
                     )
-                print(f"配列数: {sequence_count:,} 個")
+                print(f"Number of sequences: {sequence_count:,}")
             except Exception as e:
-                print(f"配列数カウント中にエラー: {e}")
+                print(f"Error counting sequences: {e}")
         else:
-            print("エラー: 結合ファイルが作成されませんでした。", file=sys.stderr)
+            print("Error: Concatenated file was not created.", file=sys.stderr)
             sys.exit(1)
-            
+
     except Exception as e:
-        print(f"エラー: ファイルの結合に失敗しました: {e}", file=sys.stderr)
+        print(f"Error: File concatenation failed: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def build_makeblastdb_command(config, db_config):
     """
-    makeblastdbコマンドを構築する
+    Build makeblastdb command
 
     Args:
-        config (dict): 設定全体
-        db_config (dict): データベース構築設定
+        config (dict): Full configuration
+        db_config (dict): Database build settings
 
     Returns:
-        list: makeblastdbコマンドリスト
+        list: makeblastdb command list
     """
-    # makeblastdbの実行ファイルパス（executables セクション優先）
+    # makeblastdb executable path (executables section takes priority)
     executable = get_executable(config, 'makeblastdb')
-    
-    # データベースタイプ（デフォルト: prot）
+
+    # Database type (default: prot)
     dbtype = db_config.get('dbtype', 'prot')
-    
-    # 基本コマンド構築
+
+    # Build basic command
     cmd = [
         executable,
         '-in', db_config['output_fasta'],
         '-dbtype', dbtype
     ]
-    
+
     return cmd
 
 
 def run_makeblastdb(cmd, db_config):
     """
-    makeblastdbを実行する
-    
+    Run makeblastdb
+
     Args:
-        cmd (list): makeblastdbコマンドリスト
-        db_config (dict): データベース構築設定
+        cmd (list): makeblastdb command list
+        db_config (dict): Database build settings
     """
-    print("BLASTPデータベースを構築しています...")
-    print(f"コマンド: {' '.join(cmd)}")
-    print(f"入力ファイル: {db_config['output_fasta']}")
-    print(f"データベースタイプ: {db_config.get('dbtype', 'prot')}")
+    print("Building BLASTP database...")
+    print(f"Command: {' '.join(cmd)}")
+    print(f"Input file: {db_config['output_fasta']}")
+    print(f"Database type: {db_config.get('dbtype', 'prot')}")
     print("-" * 50)
-    
+
     try:
-        # makeblastdbの実行
+        # Run makeblastdb
         cwd_path = os.path.dirname(os.path.abspath(db_config['output_fasta']))
         result = subprocess.run(
             cmd,
@@ -222,21 +222,21 @@ def run_makeblastdb(cmd, db_config):
             text=True,
             cwd=cwd_path or '.'
         )
-        
-        print("BLASTPデータベースの構築が正常に完了しました。")
-        
-        # 標準出力がある場合は表示
+
+        print("BLASTP database build completed successfully.")
+
+        # Display stdout if available
         if result.stdout:
-            print("標準出力:")
+            print("Standard output:")
             print(result.stdout)
-        
-        # 生成されたデータベースファイルの確認
+
+        # Check generated database files
         base_path = db_config['output_fasta']
         db_extensions = [
             '.phr', '.pin', '.pjs', '.pot', '.psq', '.ptf', '.pto'
         ]
-        
-        print("生成されたデータベースファイル:")
+
+        print("Generated database files:")
         total_size = 0
         for ext in db_extensions:
             db_file = base_path + ext
@@ -245,104 +245,104 @@ def run_makeblastdb(cmd, db_config):
                 total_size += file_size
                 print(f"  {db_file}: {file_size:,} bytes")
             else:
-                print(f"  {db_file}: 未作成")
-        
-        print(f"データベースファイル合計サイズ: {total_size:,} bytes")
-            
+                print(f"  {db_file}: not created")
+
+        print(f"Total database file size: {total_size:,} bytes")
+
     except subprocess.CalledProcessError as e:
         print(
-            f"エラー: makeblastdbの実行に失敗しました（終了コード: {e.returncode}）",
+            f"Error: makeblastdb execution failed (exit code: {e.returncode})",
             file=sys.stderr
         )
         if e.stdout:
-            print("標準出力:", file=sys.stderr)
+            print("Standard output:", file=sys.stderr)
             print(e.stdout, file=sys.stderr)
         if e.stderr:
-            print("標準エラー出力:", file=sys.stderr)
+            print("Standard error:", file=sys.stderr)
             print(e.stderr, file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
         print(
-            f"エラー: makeblastdbの実行ファイルが見つかりません: {cmd[0]}",
+            f"Error: makeblastdb executable not found: {cmd[0]}",
             file=sys.stderr
         )
         print(
-            "BLAST+がインストールされているか、パスが正しいか確認してください。",
+            "Please verify that BLAST+ is installed and the path is correct.",
             file=sys.stderr
         )
         sys.exit(1)
 
 
 def main():
-    """メイン関数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='設定ファイルからBLASTPデータベースを構築する',
+        description='Build BLASTP database from config file',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-使用例:
+Examples:
     python3 build_blastp_db.py config.yaml
     python3 build_blastp_db.py ../config.yaml
 
-設定ファイルの例:
+Config file example:
     build_blastp_db:
         input_files:
             - "../Materials/SpeciesA/SpeciesA.aa.fasta"
             - "../Materials/SpeciesB/SpeciesB.aa.fasta"
             - "../Materials/SpeciesC/SpeciesC.aa.fasta"
         output_fasta: "all_aa.fasta"
-        dbtype: "prot"  # オプション（デフォルト: prot）
-        makeblastdb_executable: "/path/to/makeblastdb"  # オプション
+        dbtype: "prot"  # Optional (default: prot)
+        makeblastdb_executable: "/path/to/makeblastdb"  # Optional
         """
     )
-    
+
     parser.add_argument(
         'config_file',
-        help='YAML形式の設定ファイルパス'
+        help='YAML config file path'
     )
-    
+
     parser.add_argument(
         '--dry-run',
         action='store_true',
-        help='実際には実行せず、コマンドのみ表示する'
+        help='Display commands without executing them'
     )
-    
+
     parser.add_argument(
         '--concat-only',
         action='store_true',
-        help='ファイルの結合のみ実行し、データベース構築は行わない'
+        help='Only concatenate files without building the database'
     )
-    
+
     args = parser.parse_args()
-    
-    # 設定ファイルの読み込み
+
+    # Load config file
     config = load_config(args.config_file)
-    
-    # 設定の妥当性チェック
+
+    # Validate configuration
     db_config = validate_config(config)
-    
+
     if args.dry_run:
-        print("ドライラン モード:")
-        print("1. ファイル結合:")
+        print("Dry run mode:")
+        print("1. File concatenation:")
         input_files_str = ' '.join(db_config['input_files'])
         print(f"   cat {input_files_str} > {db_config['output_fasta']}")
-        
+
         if not args.concat_only:
             cmd = build_makeblastdb_command(config, db_config)
-            print("2. データベース構築:")
+            print("2. Database build:")
             print(f"   {' '.join(cmd)}")
         return
-    
-    # FASTAファイルの結合
+
+    # Concatenate FASTA files
     concatenate_fasta_files(
         db_config['input_files'], db_config['output_fasta']
     )
-    
-    # データベースの構築（--concat-onlyが指定されていない場合）
+
+    # Build database (unless --concat-only is specified)
     if not args.concat_only:
         cmd = build_makeblastdb_command(config, db_config)
         run_makeblastdb(cmd, db_config)
     else:
-        print("ファイル結合のみが完了しました。データベース構築はスキップされました。")
+        print("File concatenation only completed. Database build was skipped.")
 
 
 if __name__ == '__main__':

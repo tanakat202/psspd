@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Primer3を実行するスクリプト
+Script to run Primer3
 
-使用方法:
+Usage:
     python3 run_primer3.py config.yaml
 
-設定ファイルのprimer3セクションから入出力ファイルパスを読み込み、
-primer3_coreを実行します。
+Reads input/output file paths from the primer3 section of the config file
+and runs primer3_core.
 """
 
 import subprocess
@@ -16,19 +16,19 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. name自体（PATHから検索）
+    2. fallback (if specified)
+    3. name itself (searched from PATH)
     """
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
@@ -39,33 +39,33 @@ def get_executable(config, name, fallback=None):
 
 
 def run_primer3(config: dict) -> None:
-    """primer3_coreを実行する"""
+    """Run primer3_core"""
     primer3_config = config.get('primer3', {})
 
-    # 設定値の取得
+    # Get settings
     input_file = primer3_config.get('input_file', 'primer3_input.list')
     output_file = primer3_config.get('output_file', 'primer3_output.list')
     executable = get_executable(config, 'primer3_core')
     working_dir = primer3_config.get('working_dir')
 
-    # 作業ディレクトリの処理
+    # Handle working directory
     original_dir = os.getcwd()
     if working_dir:
         os.chdir(working_dir)
-        print(f"作業ディレクトリ: {os.getcwd()}")
+        print(f"Working directory: {os.getcwd()}")
 
     try:
-        # 入力ファイルの存在確認
+        # Check input file existence
         if not os.path.exists(input_file):
-            print(f"エラー: 入力ファイルが見つかりません: {input_file}", file=sys.stderr)
+            print(f"Error: Input file not found: {input_file}", file=sys.stderr)
             sys.exit(1)
 
-        print(f"入力ファイル: {input_file}")
-        print(f"出力ファイル: {output_file}")
-        print(f"実行ファイル: {executable}")
+        print(f"Input file: {input_file}")
+        print(f"Output file: {output_file}")
+        print(f"Executable: {executable}")
 
-        # primer3_coreを実行
-        # primer3_core < input > output と同等の処理
+        # Run primer3_core
+        # Equivalent to: primer3_core < input > output
         with open(input_file, 'r', encoding='utf-8') as fin:
             with open(output_file, 'w', encoding='utf-8') as fout:
                 result = subprocess.run(
@@ -77,28 +77,28 @@ def run_primer3(config: dict) -> None:
                 )
 
         if result.returncode != 0:
-            print(f"エラー: primer3_coreの実行に失敗しました", file=sys.stderr)
+            print(f"Error: primer3_core execution failed", file=sys.stderr)
             if result.stderr:
                 print(f"stderr: {result.stderr}", file=sys.stderr)
             sys.exit(result.returncode)
 
-        print(f"完了: {output_file} を作成しました")
+        print(f"Done: Created {output_file}")
 
     finally:
-        # 元のディレクトリに戻る
+        # Return to original directory
         if working_dir:
             os.chdir(original_dir)
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 run_primer3.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 run_primer3.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

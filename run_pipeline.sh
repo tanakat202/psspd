@@ -1,69 +1,69 @@
 #!/bin/bash
 
-# パイプライン全体を実行するスクリプト
-# 使用方法: ./run_pipeline.sh <config_file> [--start-step <step>] [--end-step <step>]
-# 例: ./run_pipeline.sh config.yaml
-#     ./run_pipeline.sh config.yaml --start-step 5
-#     ./run_pipeline.sh config.yaml --start-step gmap_hit --end-step primer3_run
+# Script to execute the entire pipeline
+# Usage: ./run_pipeline.sh <config_file> [--start-step <step>] [--end-step <step>]
+# Example: ./run_pipeline.sh config.yaml
+#          ./run_pipeline.sh config.yaml --start-step 5
+#          ./run_pipeline.sh config.yaml --start-step gmap_hit --end-step primer3_run
 
-set -e  # エラー時に停止
+set -e  # Stop on error
 
 #-----------------------------------------------------------
-# ステータス管理用ディレクトリ
+# Directory for status management
 #-----------------------------------------------------------
 STATUS_DIR=".pipeline_status"
 
 #-----------------------------------------------------------
-# ステップ名の定義
+# Step name definitions
 #-----------------------------------------------------------
 STEP_NAMES=(
-    "translation"      # 0: Materials - 翻訳処理
-    "blastp_db"        # 1: BLASTP - DB構築
-    "blastp_run"       # 2: BLASTP - 実行
-    "blastp_nohit"     # 3: BLASTP - ノーヒット抽出
-    "blastp_extract"   # 4: BLASTP - ノーヒットCDS抽出
-    "gmap_db"          # 5: GMAP - DB構築
-    "gmap_run"         # 6: GMAP - GMAP実行（GFF3生成）
-    "gmap_hit"         # 7: GMAP - ヒットリスト作成
-    "gmap_complete"    # 8: GMAP - 完全リスト作成
-    "primer3_input"    # 9: Primer3 - 入力ファイル生成
-    "primer3_run"      # 10: Primer3 - 実行
-    "primer3_fasta"    # 11: Primer3 - FASTA作成
-    "blastn_db"        # 12: Primer3 - BLASTN DB構築
-    "blastn_run"       # 13: Primer3 - BLASTN実行
-    "primer3_extract"  # 14: Primer3 - ヒット領域抽出
-    "primer3_list"     # 15: Primer3 - プライマーリスト作成
+    "translation"      # 0: Materials - Translation processing
+    "blastp_db"        # 1: BLASTP - Build DB
+    "blastp_run"       # 2: BLASTP - Run
+    "blastp_nohit"     # 3: BLASTP - Extract no-hits
+    "blastp_extract"   # 4: BLASTP - Extract no-hit CDS
+    "gmap_db"          # 5: GMAP - Build DB
+    "gmap_run"         # 6: GMAP - Run GMAP (generate GFF3)
+    "gmap_hit"         # 7: GMAP - Create hit list
+    "gmap_complete"    # 8: GMAP - Create complete list
+    "primer3_input"    # 9: Primer3 - Generate input file
+    "primer3_run"      # 10: Primer3 - Run
+    "primer3_fasta"    # 11: Primer3 - Create FASTA
+    "blastn_db"        # 12: Primer3 - Build BLASTN DB
+    "blastn_run"       # 13: Primer3 - Run BLASTN
+    "primer3_extract"  # 14: Primer3 - Extract hit regions
+    "primer3_list"     # 15: Primer3 - Create primer list
 )
 
 MAX_STEP=$((${#STEP_NAMES[@]} - 1))
 
 #-----------------------------------------------------------
-# ヘルプ表示関数
+# Help display function
 #-----------------------------------------------------------
 show_help() {
-    echo "使用方法: $0 <config_file> [--start-step <step>] [--end-step <step>] [options]"
+    echo "Usage: $0 <config_file> [--start-step <step>] [--end-step <step>] [options]"
     echo ""
-    echo "オプション:"
-    echo "  --start-step <step>  開始ステップを指定（番号または名前）"
-    echo "  --end-step <step>    終了ステップを指定（番号または名前）"
-    echo "  --force              完了済みステップも確認なしで再実行"
-    echo "  --skip-completed     完了済みステップを確認なしでスキップ"
-    echo "  --check-only         スクリプトと外部ツールの存在確認のみ行う"
-    echo "  --clean-status       ステータスファイルをクリアして終了"
-    echo "  --show-status        各ステップの完了状況を表示して終了"
-    echo "  --help               このヘルプを表示"
+    echo "Options:"
+    echo "  --start-step <step>  Specify start step (number or name)"
+    echo "  --end-step <step>    Specify end step (number or name)"
+    echo "  --force              Re-run completed steps without confirmation"
+    echo "  --skip-completed     Skip completed steps without confirmation"
+    echo "  --check-only         Only check for scripts and external tools"
+    echo "  --clean-status       Clear status files and exit"
+    echo "  --show-status        Show completion status of each step and exit"
+    echo "  --help               Show this help"
     echo ""
-    echo "例:"
-    echo "  $0 config.yaml                              # 全ステップ実行"
-    echo "  $0 config.yaml --start-step 5              # Step 5から最後まで"
-    echo "  $0 config.yaml --start-step gmap_hit       # gmap_hitから最後まで"
-    echo "  $0 config.yaml --start-step 3 --end-step 6 # Step 3〜6のみ"
-    echo "  $0 config.yaml --skip-completed            # 完了済みを自動スキップ"
-    echo "  $0 config.yaml --force                     # 全て再実行"
-    echo "  $0 config.yaml --check-only               # 環境チェックのみ"
-    echo "  $0 --clean-status                          # ステータスをクリア"
+    echo "Examples:"
+    echo "  $0 config.yaml                              # Run all steps"
+    echo "  $0 config.yaml --start-step 5              # From Step 5 to the end"
+    echo "  $0 config.yaml --start-step gmap_hit       # From gmap_hit to the end"
+    echo "  $0 config.yaml --start-step 3 --end-step 6 # Steps 3 to 6 only"
+    echo "  $0 config.yaml --skip-completed            # Auto-skip completed steps"
+    echo "  $0 config.yaml --force                     # Re-run all steps"
+    echo "  $0 config.yaml --check-only               # Environment check only"
+    echo "  $0 --clean-status                          # Clear status"
     echo ""
-    echo "利用可能なステップ:"
+    echo "Available steps:"
     for i in "${!STEP_NAMES[@]}"; do
         printf "  %2d: %s\n" "$i" "${STEP_NAMES[$i]}"
     done
@@ -71,15 +71,15 @@ show_help() {
 }
 
 #-----------------------------------------------------------
-# ステータス管理関数
+# Status management functions
 #-----------------------------------------------------------
-# マーカーファイルのパスを取得
+# Get marker file path
 get_marker_file() {
     local step_num=$1
     echo "${STATUS_DIR}/step_${step_num}_${STEP_NAMES[$step_num]}.complete"
 }
 
-# ステップが完了済みかチェック
+# Check if step is completed
 is_step_completed() {
     local step_num=$1
     local marker_file
@@ -87,7 +87,7 @@ is_step_completed() {
     [ -f "$marker_file" ]
 }
 
-# ステップを完了済みとしてマーク
+# Mark step as completed
 mark_step_completed() {
     local step_num=$1
     local marker_file
@@ -96,20 +96,20 @@ mark_step_completed() {
     date "+%Y-%m-%d %H:%M:%S" > "$marker_file"
 }
 
-# ステータスディレクトリをクリア
+# Clear status directory
 clean_status() {
     if [ -d "$STATUS_DIR" ]; then
         rm -rf "$STATUS_DIR"
-        echo "ステータスファイルをクリアしました"
+        echo "Status files have been cleared"
     else
-        echo "ステータスファイルは存在しません"
+        echo "No status files exist"
     fi
     exit 0
 }
 
-# 各ステップの完了状況を表示
+# Show completion status of each step
 show_status() {
-    echo "パイプラインステータス:"
+    echo "Pipeline status:"
     echo "------------------------------------------------------------"
     for i in "${!STEP_NAMES[@]}"; do
         local marker_file
@@ -117,78 +117,78 @@ show_status() {
         if [ -f "$marker_file" ]; then
             local completed_at
             completed_at=$(cat "$marker_file")
-            printf "  [完了] %2d: %-20s (%s)\n" "$i" "${STEP_NAMES[$i]}" "$completed_at"
+            printf "  [Done] %2d: %-20s (%s)\n" "$i" "${STEP_NAMES[$i]}" "$completed_at"
         else
-            printf "  [未完] %2d: %s\n" "$i" "${STEP_NAMES[$i]}"
+            printf "  [Not done] %2d: %s\n" "$i" "${STEP_NAMES[$i]}"
         fi
     done
     exit 0
 }
 
-# 完了済みステップの実行確認（ユーザーに問い合わせ）
-# 戻り値: 0=スキップ, 1=実行
+# Check whether to skip a completed step (prompt user)
+# Return value: 0=skip, 1=run
 check_and_ask_skip() {
     local step_num=$1
 
-    # 完了済みでなければ実行
+    # Run if not completed
     if ! is_step_completed "$step_num"; then
         return 1
     fi
 
-    # --force モードなら再実行
+    # Re-run in --force mode
     if [ "$FORCE_MODE" = true ]; then
         return 1
     fi
 
-    # --skip-completed モードならスキップ
+    # Skip in --skip-completed mode
     if [ "$SKIP_COMPLETED_MODE" = true ]; then
-        echo "  → 完了済みのためスキップします"
+        echo "  -> Skipping because already completed"
         return 0
     fi
 
-    # ユーザーに確認
+    # Ask user
     local marker_file
     marker_file=$(get_marker_file "$step_num")
     local completed_at
     completed_at=$(cat "$marker_file")
 
-    echo "  このステップは既に完了しています (完了日時: $completed_at)"
-    read -p "  スキップしますか？ [Y/n]: " answer
+    echo "  This step has already been completed (completed at: $completed_at)"
+    read -p "  Skip this step? [Y/n]: " answer
     case "$answer" in
-        [Nn]*) return 1 ;;  # 再実行
-        *)     return 0 ;;  # スキップ
+        [Nn]*) return 1 ;;  # Re-run
+        *)     return 0 ;;  # Skip
     esac
 }
 
 #-----------------------------------------------------------
-# ステップ名を番号に変換する関数
+# Function to convert step name to number
 #-----------------------------------------------------------
 step_to_number() {
     local step=$1
-    # 数字の場合はそのまま返す
+    # If numeric, return as-is
     if [[ "$step" =~ ^[0-9]+$ ]]; then
         if [ "$step" -ge 0 ] && [ "$step" -le "$MAX_STEP" ]; then
             echo "$step"
             return 0
         else
-            echo "エラー: ステップ番号 '$step' は範囲外です (0-$MAX_STEP)" >&2
+            echo "Error: Step number '$step' is out of range (0-$MAX_STEP)" >&2
             return 1
         fi
     fi
-    # 名前の場合は対応する番号を探す
+    # If name, find corresponding number
     for i in "${!STEP_NAMES[@]}"; do
         if [ "${STEP_NAMES[$i]}" = "$step" ]; then
             echo "$i"
             return 0
         fi
     done
-    echo "エラー: 不明なステップ名 '$step'" >&2
-    echo "利用可能なステップ: ${STEP_NAMES[*]}" >&2
+    echo "Error: Unknown step name '$step'" >&2
+    echo "Available steps: ${STEP_NAMES[*]}" >&2
     return 1
 }
 
 #-----------------------------------------------------------
-# 引数パース
+# Argument parsing
 #-----------------------------------------------------------
 CONFIG_FILE=""
 START_STEP=0
@@ -222,7 +222,7 @@ while [ $# -gt 0 ]; do
             ;;
         --start-step)
             if [ -z "$2" ]; then
-                echo "エラー: --start-step には値が必要です" >&2
+                echo "Error: --start-step requires a value" >&2
                 exit 1
             fi
             START_STEP=$(step_to_number "$2") || exit 1
@@ -230,22 +230,22 @@ while [ $# -gt 0 ]; do
             ;;
         --end-step)
             if [ -z "$2" ]; then
-                echo "エラー: --end-step には値が必要です" >&2
+                echo "Error: --end-step requires a value" >&2
                 exit 1
             fi
             END_STEP=$(step_to_number "$2") || exit 1
             shift 2
             ;;
         -*)
-            echo "エラー: 不明なオプション '$1'" >&2
-            echo "ヘルプを表示するには: $0 --help" >&2
+            echo "Error: Unknown option '$1'" >&2
+            echo "For help, run: $0 --help" >&2
             exit 1
             ;;
         *)
             if [ -z "$CONFIG_FILE" ]; then
                 CONFIG_FILE=$1
             else
-                echo "エラー: 設定ファイルは1つだけ指定してください" >&2
+                echo "Error: Please specify only one config file" >&2
                 exit 1
             fi
             shift
@@ -253,57 +253,57 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# --force と --skip-completed は同時に指定できない
+# --force and --skip-completed cannot be used together
 if [ "$FORCE_MODE" = true ] && [ "$SKIP_COMPLETED_MODE" = true ]; then
-    echo "エラー: --force と --skip-completed は同時に指定できません" >&2
+    echo "Error: --force and --skip-completed cannot be used together" >&2
     exit 1
 fi
 
-# 設定ファイルの指定確認
+# Check that config file is specified
 if [ -z "$CONFIG_FILE" ]; then
-    echo "エラー: 設定ファイルが指定されていません" >&2
-    echo "使用方法: $0 <config_file> [--start-step <step>] [--end-step <step>]" >&2
+    echo "Error: No config file specified" >&2
+    echo "Usage: $0 <config_file> [--start-step <step>] [--end-step <step>]" >&2
     exit 1
 fi
 
-# 範囲の妥当性チェック
+# Validate step range
 if [ "$START_STEP" -gt "$END_STEP" ]; then
-    echo "エラー: 開始ステップ ($START_STEP) は終了ステップ ($END_STEP) 以下である必要があります" >&2
+    echo "Error: Start step ($START_STEP) must be less than or equal to end step ($END_STEP)" >&2
     exit 1
 fi
 
 #-----------------------------------------------------------
-# ステップ実行判定関数
+# Step execution decision function
 #-----------------------------------------------------------
 should_run_step() {
     local step_num=$1
     [ "$step_num" -ge "$START_STEP" ] && [ "$step_num" -le "$END_STEP" ]
 }
 
-# 設定ファイルの存在確認
+# Check that config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "エラー: 設定ファイル '$CONFIG_FILE' が見つかりません"
+    echo "Error: Config file '$CONFIG_FILE' not found"
     exit 1
 fi
 
-# 開始時刻
+# Start time
 PIPELINE_START_TIME=$(date +%s)
 echo "============================================================"
-echo "パイプライン開始: $(date)"
-echo "設定ファイル: $CONFIG_FILE"
+echo "Pipeline started: $(date)"
+echo "Config file: $CONFIG_FILE"
 if [ "$START_STEP" -eq 0 ] && [ "$END_STEP" -eq "$MAX_STEP" ]; then
-    echo "実行ステップ: 全ステップ (0-$MAX_STEP)"
+    echo "Steps to run: All steps (0-$MAX_STEP)"
 else
-    echo "実行ステップ: $START_STEP (${STEP_NAMES[$START_STEP]}) 〜 $END_STEP (${STEP_NAMES[$END_STEP]})"
+    echo "Steps to run: $START_STEP (${STEP_NAMES[$START_STEP]}) to $END_STEP (${STEP_NAMES[$END_STEP]})"
 fi
 echo "============================================================"
 
-# ベースディレクトリ（スクリプトの場所）
+# Base directory (location of the script)
 BASE_DIR=$(dirname "$(readlink -f "$0")")
 cd "$BASE_DIR"
 
 #-----------------------------------------------------------
-# 必要なスクリプトファイルの存在確認
+# Check that all required script files exist
 #-----------------------------------------------------------
 REQUIRED_SCRIPTS=(
     "Materials/step0_translation.py"
@@ -332,47 +332,47 @@ for script in "${REQUIRED_SCRIPTS[@]}"; do
 done
 
 if [ ${#MISSING_SCRIPTS[@]} -ne 0 ]; then
-    echo "エラー: 以下の必要なスクリプトが見つかりません:"
+    echo "Error: The following required scripts were not found:"
     for missing in "${MISSING_SCRIPTS[@]}"; do
         echo "  - $missing"
     done
     exit 1
 fi
 
-echo "全ての必要なスクリプトを確認しました"
+echo "All required scripts have been verified"
 
-# 設定ファイルへの相対パスを計算
+# Compute path to config file
 CONFIG_PATH=$(realpath "$CONFIG_FILE")
 
 #-----------------------------------------------------------
-# 外部ツールの存在確認
-# PATHに存在するか、または設定ファイルで指定されたパスを確認
+# Check for external tools
+# Check if they exist in PATH or at paths specified in config file
 #-----------------------------------------------------------
 
-# 設定ファイルからexecutables.<key>の値を取得する関数
+# Function to get executables.<key> value from config file
 get_config_executable() {
     local key=$1
     local value
-    # executables:セクション内の指定キーの値を取得
+    # Get the value of the specified key within the executables: section
     value=$(sed -n '/^executables:/,/^[^ ]/p' "$CONFIG_PATH" | grep "^  ${key}:" | sed 's/^[^:]*: *"\{0,1\}\([^"#]*\)"\{0,1\}.*/\1/' | tr -d ' ')
     echo "$value"
 }
 
-# 実行ファイルが利用可能かチェックする関数
-# 戻り値: 0=利用可能、1=利用不可
+# Function to check if an executable is available
+# Return value: 0=available, 1=not available
 check_executable() {
     local name=$1
     local config_path
 
-    # まずPATHから探す
+    # First look in PATH
     if command -v "$name" >/dev/null 2>&1; then
         return 0
     fi
 
-    # PATHになければ設定ファイルを確認
+    # If not in PATH, check config file
     config_path=$(get_config_executable "$name")
     if [ -n "$config_path" ] && [ "$config_path" != "$name" ]; then
-        # 設定ファイルで指定されたパスが実行可能か確認
+        # Check if the path specified in config is executable
         if command -v "$config_path" >/dev/null 2>&1; then
             return 0
         elif [ -x "$config_path" ]; then
@@ -383,7 +383,7 @@ check_executable() {
     return 1
 }
 
-# 必要な外部ツールのリスト
+# List of required external tools
 REQUIRED_EXECUTABLES=(
     "makeblastdb"
     "blastp"
@@ -398,40 +398,40 @@ for exe in "${REQUIRED_EXECUTABLES[@]}"; do
     if ! check_executable "$exe"; then
         config_path=$(get_config_executable "$exe")
         if [ -n "$config_path" ] && [ "$config_path" != "$exe" ]; then
-            MISSING_EXECUTABLES+=("$exe (設定ファイルで指定: $config_path)")
+            MISSING_EXECUTABLES+=("$exe (specified in config: $config_path)")
         else
-            MISSING_EXECUTABLES+=("$exe (PATHに存在せず、設定ファイルでも未指定)")
+            MISSING_EXECUTABLES+=("$exe (not found in PATH and not specified in config)")
         fi
     fi
 done
 
 if [ ${#MISSING_EXECUTABLES[@]} -ne 0 ]; then
-    echo "エラー: 以下の外部ツールが見つかりません:"
+    echo "Error: The following external tools were not found:"
     for missing in "${MISSING_EXECUTABLES[@]}"; do
         echo "  - $missing"
     done
     echo ""
-    echo "対処方法:"
-    echo "  1. ツールをインストールしてPATHを通す"
-    echo "  2. または設定ファイルのexecutables:セクションでパスを指定する"
+    echo "Resolution:"
+    echo "  1. Install the tools and add them to PATH"
+    echo "  2. Or specify the paths in the executables: section of the config file"
     exit 1
 fi
 
-echo "全ての外部ツールを確認しました"
+echo "All external tools have been verified"
 
 #-----------------------------------------------------------
-# --check-only モードの場合はここで終了
+# Exit here if in --check-only mode
 #-----------------------------------------------------------
 if [ "$CHECK_ONLY_MODE" = true ]; then
     echo ""
     echo "============================================================"
-    echo "環境チェック完了: 全てのチェックに合格しました"
+    echo "Environment check complete: All checks passed"
     echo "============================================================"
     exit 0
 fi
 
 #-----------------------------------------------------------
-# Step 0: Materials - 翻訳処理
+# Step 0: Materials - Translation processing
 #-----------------------------------------------------------
 if should_run_step 0; then
     echo ""
@@ -445,7 +445,7 @@ if should_run_step 0; then
 fi
 
 #-----------------------------------------------------------
-# Step 1: BLASTP - データベース構築
+# Step 1: BLASTP - Build database
 #-----------------------------------------------------------
 if should_run_step 1; then
     echo ""
@@ -459,7 +459,7 @@ if should_run_step 1; then
 fi
 
 #-----------------------------------------------------------
-# Step 2: BLASTP - BLASTP実行
+# Step 2: BLASTP - Run BLASTP
 #-----------------------------------------------------------
 if should_run_step 2; then
     echo ""
@@ -473,7 +473,7 @@ if should_run_step 2; then
 fi
 
 #-----------------------------------------------------------
-# Step 3: BLASTP - ヒットしない遺伝子の抽出
+# Step 3: BLASTP - Extract no-hit genes
 #-----------------------------------------------------------
 if should_run_step 3; then
     echo ""
@@ -487,7 +487,7 @@ if should_run_step 3; then
 fi
 
 #-----------------------------------------------------------
-# Step 4: BLASTP - ノーヒットCDS抽出
+# Step 4: BLASTP - Extract no-hit CDS
 #-----------------------------------------------------------
 if should_run_step 4; then
     echo ""
@@ -501,7 +501,7 @@ if should_run_step 4; then
 fi
 
 #-----------------------------------------------------------
-# Step 5: GMAP - データベース構築
+# Step 5: GMAP - Build database
 #-----------------------------------------------------------
 if should_run_step 5; then
     echo ""
@@ -515,7 +515,7 @@ if should_run_step 5; then
 fi
 
 #-----------------------------------------------------------
-# Step 6: GMAP - GMAP実行（GFF3生成）
+# Step 6: GMAP - Run GMAP (generate GFF3)
 #-----------------------------------------------------------
 if should_run_step 6; then
     echo ""
@@ -529,7 +529,7 @@ if should_run_step 6; then
 fi
 
 #-----------------------------------------------------------
-# Step 7: GMAP - ヒットリスト作成
+# Step 7: GMAP - Create hit list
 #-----------------------------------------------------------
 if should_run_step 7; then
     echo ""
@@ -543,7 +543,7 @@ if should_run_step 7; then
 fi
 
 #-----------------------------------------------------------
-# Step 8: GMAP - 完全リスト作成
+# Step 8: GMAP - Create complete list
 #-----------------------------------------------------------
 if should_run_step 8; then
     echo ""
@@ -557,7 +557,7 @@ if should_run_step 8; then
 fi
 
 #-----------------------------------------------------------
-# Step 9: Primer3 - 入力ファイル生成
+# Step 9: Primer3 - Generate input file
 #-----------------------------------------------------------
 if should_run_step 9; then
     echo ""
@@ -571,7 +571,7 @@ if should_run_step 9; then
 fi
 
 #-----------------------------------------------------------
-# Step 10: Primer3 - Primer3実行
+# Step 10: Primer3 - Run Primer3
 #-----------------------------------------------------------
 if should_run_step 10; then
     echo ""
@@ -585,7 +585,7 @@ if should_run_step 10; then
 fi
 
 #-----------------------------------------------------------
-# Step 11: Primer3 - FASTA作成
+# Step 11: Primer3 - Create FASTA
 #-----------------------------------------------------------
 if should_run_step 11; then
     echo ""
@@ -599,7 +599,7 @@ if should_run_step 11; then
 fi
 
 #-----------------------------------------------------------
-# Step 12: Primer3 - BLASTN データベース構築
+# Step 12: Primer3 - Build BLASTN database
 #-----------------------------------------------------------
 if should_run_step 12; then
     echo ""
@@ -613,7 +613,7 @@ if should_run_step 12; then
 fi
 
 #-----------------------------------------------------------
-# Step 13: Primer3 - BLASTN-short実行
+# Step 13: Primer3 - Run BLASTN-short
 #-----------------------------------------------------------
 if should_run_step 13; then
     echo ""
@@ -627,7 +627,7 @@ if should_run_step 13; then
 fi
 
 #-----------------------------------------------------------
-# Step 14: Primer3 - ヒット領域抽出とペア作成
+# Step 14: Primer3 - Extract hit regions and create pairs
 #-----------------------------------------------------------
 if should_run_step 14; then
     echo ""
@@ -641,7 +641,7 @@ if should_run_step 14; then
 fi
 
 #-----------------------------------------------------------
-# Step 15: Primer3 - プライマーリスト作成
+# Step 15: Primer3 - Create primer list
 #-----------------------------------------------------------
 if should_run_step 15; then
     echo ""
@@ -655,7 +655,7 @@ if should_run_step 15; then
 fi
 
 #-----------------------------------------------------------
-# 完了
+# Complete
 #-----------------------------------------------------------
 PIPELINE_END_TIME=$(date +%s)
 ELAPSED=$((PIPELINE_END_TIME - PIPELINE_START_TIME))
@@ -665,6 +665,6 @@ SECONDS=$((ELAPSED % 60))
 
 echo ""
 echo "============================================================"
-echo "パイプライン完了: $(date)"
-echo "総実行時間: ${HOURS}時間 ${MINUTES}分 ${SECONDS}秒"
+echo "Pipeline completed: $(date)"
+echo "Total execution time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
 echo "============================================================"

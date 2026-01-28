@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Primer3入力ファイル生成スクリプト
+Primer3 input file generation script
 
-使用方法:
+Usage:
     python3 make_primer3_input.py config.yaml
 
-設定ファイル（YAML形式）からパラメータを読み込み、
-Target_cds.faからprimer3_input.listを生成します。
+Reads parameters from the config file (YAML format)
+and generates primer3_input.list from Target_cds.fa.
 
-必要な設定項目:
+Required settings:
     make_primer3_input:
-        input_cds: 入力CDSファイル（Target_cds.fa）
-        output_file: 出力ファイル（primer3_input.list）
-        primer_opt_size: 最適プライマー長（デフォルト: 20）
-        primer_min_size: 最小プライマー長（デフォルト: 18）
-        primer_max_size: 最大プライマー長（デフォルト: 27）
-        product_size_range: 増幅産物サイズ範囲（デフォルト: 300-500）
+        input_cds: Input CDS file (Target_cds.fa)
+        output_file: Output file (primer3_input.list)
+        primer_opt_size: Optimal primer length (default: 20)
+        primer_min_size: Minimum primer length (default: 18)
+        primer_max_size: Maximum primer length (default: 27)
+        product_size_range: Amplicon size range (default: 300-500)
 """
 
 import sys
@@ -26,52 +26,52 @@ import argparse
 
 def load_config(config_file):
     """
-    YAML設定ファイルを読み込む
+    Load YAML config file
 
     Args:
-        config_file (str): 設定ファイルのパス
+        config_file (str): Config file path
 
     Returns:
-        dict: 設定内容
+        dict: Configuration contents
     """
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"エラー: 設定ファイル '{config_file}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Config file '{config_file}' not found.", file=sys.stderr)
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"エラー: 設定ファイルの読み込みに失敗しました: {e}", file=sys.stderr)
+        print(f"Error: Failed to load config file: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def validate_config(config):
     """
-    設定の妥当性をチェックする
+    Validate configuration
 
     Args:
-        config (dict): 設定内容
+        config (dict): Configuration contents
 
     Returns:
-        dict: make_primer3_input設定
+        dict: make_primer3_input settings
     """
     if 'make_primer3_input' not in config:
-        print("エラー: 設定ファイルに 'make_primer3_input' セクションがありません。", file=sys.stderr)
+        print("Error: 'make_primer3_input' section not found in config file.", file=sys.stderr)
         sys.exit(1)
 
     primer3_input_config = config['make_primer3_input']
 
-    # 必須パラメータのチェック
+    # Check required parameters
     required_params = ['input_cds', 'output_file']
     for param in required_params:
         if param not in primer3_input_config:
-            print(f"エラー: 必須パラメータ '{param}' が設定ファイルにありません。", file=sys.stderr)
+            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # 入力ファイルの存在チェック
+    # Check input file existence
     if not os.path.exists(primer3_input_config['input_cds']):
-        print(f"エラー: 入力ファイル '{primer3_input_config['input_cds']}' が見つかりません。", file=sys.stderr)
+        print(f"Error: Input file '{primer3_input_config['input_cds']}' not found.", file=sys.stderr)
         sys.exit(1)
 
     return primer3_input_config
@@ -79,18 +79,18 @@ def validate_config(config):
 
 def make_primer3_input(config):
     """
-    Primer3入力ファイルを生成する
+    Generate Primer3 input file
 
     Args:
-        config (dict): make_primer3_input設定
+        config (dict): make_primer3_input settings
 
     Returns:
-        int: 処理したシーケンス数
+        int: Number of sequences processed
     """
     input_cds = config['input_cds']
     output_file = config['output_file']
 
-    # Primer3パラメータ（デフォルト値付き）
+    # Primer3 parameters (with default values)
     primer_opt_size = config.get('primer_opt_size', 20)
     primer_min_size = config.get('primer_min_size', 18)
     primer_max_size = config.get('primer_max_size', 27)
@@ -106,11 +106,11 @@ def make_primer3_input(config):
                     continue
 
                 if line.startswith('>'):
-                    # ヘッダー行: IDを抽出
+                    # Header line: extract ID
                     seq_id = line[1:].split()[0]
                     outfile.write(f"SEQUENCE_ID={seq_id}\n")
                 else:
-                    # 配列行: テンプレートとパラメータを出力
+                    # Sequence line: output template and parameters
                     outfile.write(f"SEQUENCE_TEMPLATE={line}\n")
                     outfile.write(f"PRIMER_OPT_SIZE={primer_opt_size}\n")
                     outfile.write(f"PRIMER_MIN_SIZE={primer_min_size}\n")
@@ -123,16 +123,16 @@ def make_primer3_input(config):
 
 
 def main():
-    """メイン関数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='Target_cds.faからPrimer3入力ファイルを生成する',
+        description='Generate Primer3 input file from Target_cds.fa',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-使用例:
+Examples:
     python3 make_primer3_input.py config.yaml
     python3 make_primer3_input.py ../config.yaml
 
-設定ファイルの例:
+Config file example:
     make_primer3_input:
         input_cds: "../GMAP/Target_cds.fa"
         output_file: "primer3_input.list"
@@ -145,22 +145,22 @@ def main():
 
     parser.add_argument(
         'config_file',
-        help='YAML形式の設定ファイルパス'
+        help='YAML config file path'
     )
 
     args = parser.parse_args()
 
-    # 設定ファイルの読み込み
+    # Load config file
     config = load_config(args.config_file)
 
-    # 設定の妥当性チェック
+    # Validate configuration
     primer3_input_config = validate_config(config)
 
     print("=" * 60)
-    print("Primer3入力ファイル生成")
+    print("Primer3 Input File Generation")
     print("=" * 60)
-    print(f"入力ファイル: {primer3_input_config['input_cds']}")
-    print(f"出力ファイル: {primer3_input_config['output_file']}")
+    print(f"Input file: {primer3_input_config['input_cds']}")
+    print(f"Output file: {primer3_input_config['output_file']}")
     print(f"PRIMER_OPT_SIZE: {primer3_input_config.get('primer_opt_size', 20)}")
     print(f"PRIMER_MIN_SIZE: {primer3_input_config.get('primer_min_size', 18)}")
     print(f"PRIMER_MAX_SIZE: {primer3_input_config.get('primer_max_size', 27)}")
@@ -169,9 +169,9 @@ def main():
 
     seq_count = make_primer3_input(primer3_input_config)
 
-    print(f"処理したシーケンス数: {seq_count}")
+    print(f"Sequences processed: {seq_count}")
     print("=" * 60)
-    print("処理が完了しました。")
+    print("Processing completed.")
 
 
 if __name__ == '__main__':

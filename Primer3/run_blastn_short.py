@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-BLASTN（blastn-short）を実行するスクリプト
+Script to run BLASTN (blastn-short)
 
-使用方法:
+Usage:
     python3 run_blastn_short.py config.yaml
 
-設定ファイルのblastn_shortセクションから設定を読み込み、
-blastn -task blastn-short を実行してプライマー配列の検索を行います。
+Reads settings from the blastn_short section of the config file
+and runs blastn -task blastn-short to search primer sequences.
 """
 
 import subprocess
@@ -17,27 +17,27 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. PATHから検索
-    4. name自体
+    2. fallback (if specified)
+    3. Search from PATH
+    4. name itself
     """
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
     if fallback:
         return fallback
-    # PATHから検索
+    # Search from PATH
     path = shutil.which(name)
     if path:
         return path
@@ -45,38 +45,38 @@ def get_executable(config, name, fallback=None):
 
 
 def run_blastn_short(config: dict) -> None:
-    """BLASTN（blastn-short）を実行する"""
+    """Run BLASTN (blastn-short)"""
     blastn_config = config.get('blastn_short', {})
 
-    # blastnの実行ファイルパス（executables セクション優先）
+    # blastn executable path (executables section takes priority)
     executable = get_executable(config, 'blastn')
 
-    # クエリファイル（プライマー配列）
+    # Query file (primer sequences)
     query = blastn_config.get('query', 'primer3.fa')
 
-    # 出力フォーマット（デフォルト: 6 = tabular）
+    # Output format (default: 6 = tabular)
     outfmt = blastn_config.get('outfmt', 6)
 
-    # スレッド数（デフォルト: 4）
+    # Number of threads (default: 4)
     num_threads = blastn_config.get('num_threads', 4)
 
-    # 検索対象データベースのリスト
+    # List of databases to search
     databases = blastn_config.get('databases', [])
 
     if not databases:
-        print("エラー: データベース設定がありません", file=sys.stderr)
+        print("Error: No database configuration found", file=sys.stderr)
         sys.exit(1)
 
-    # クエリファイルの存在確認
+    # Check query file existence
     if not os.path.exists(query):
-        print(f"エラー: クエリファイルが見つかりません: {query}", file=sys.stderr)
+        print(f"Error: Query file not found: {query}", file=sys.stderr)
         sys.exit(1)
 
     print(f"blastn: {executable}")
-    print(f"クエリファイル: {query}")
-    print(f"出力フォーマット: {outfmt}")
-    print(f"スレッド数: {num_threads}")
-    print(f"検索対象データベース数: {len(databases)}")
+    print(f"Query file: {query}")
+    print(f"Output format: {outfmt}")
+    print(f"Number of threads: {num_threads}")
+    print(f"Number of databases to search: {len(databases)}")
     print()
 
     for db in databases:
@@ -85,18 +85,18 @@ def run_blastn_short(config: dict) -> None:
         output = db.get('output')
 
         if not name or not db_path:
-            print(f"警告: name または db が指定されていないエントリをスキップします", file=sys.stderr)
+            print(f"Warning: Skipping entry with missing name or db", file=sys.stderr)
             continue
 
-        # 出力ファイル名が指定されていない場合は name.out を使用
+        # Use name.out if output file name is not specified
         if not output:
             output = f"{name}.out"
 
-        print(f"BLASTN実行: {name}")
-        print(f"  データベース: {db_path}")
-        print(f"  出力: {output}")
+        print(f"Running BLASTN: {name}")
+        print(f"  Database: {db_path}")
+        print(f"  Output: {output}")
 
-        # blastn -task blastn-short を実行
+        # Run blastn -task blastn-short
         cmd = [
             executable,
             '-task', 'blastn-short',
@@ -106,7 +106,7 @@ def run_blastn_short(config: dict) -> None:
             '-outfmt', str(outfmt),
             '-num_threads', str(num_threads)
         ]
-        print(f"  コマンド: {' '.join(cmd)}")
+        print(f"  Command: {' '.join(cmd)}")
 
         result = subprocess.run(
             cmd,
@@ -119,26 +119,26 @@ def run_blastn_short(config: dict) -> None:
             print(result.stdout)
 
         if result.returncode != 0:
-            print(f"エラー: blastnの実行に失敗しました", file=sys.stderr)
+            print(f"Error: blastn execution failed", file=sys.stderr)
             if result.stderr:
                 print(f"stderr: {result.stderr}", file=sys.stderr)
             sys.exit(result.returncode)
 
-        print(f"  完了: {output} を作成しました")
+        print(f"  Done: Created {output}")
         print()
 
-    print("全てのBLASTN検索が完了しました")
+    print("All BLASTN searches completed")
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 run_blastn_short.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 run_blastn_short.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

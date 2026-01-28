@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Primer3出力からFASTAファイルを作成するスクリプト
+Script to create FASTA file from Primer3 output
 
-使用方法:
+Usage:
     python3 createFasta.py config.yaml
 
-設定ファイルのcreate_fastaセクションから設定を読み込み、
-Primer3の出力ファイルからプライマー配列をFASTA形式で出力します。
+Reads settings from the create_fasta section of the config file
+and outputs primer sequences in FASTA format from the Primer3 output file.
 """
 
 import re
@@ -16,28 +16,28 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def create_fasta(config: dict) -> None:
-    """Primer3出力からFASTAファイルを作成する"""
+    """Create FASTA file from Primer3 output"""
     fasta_config = config.get('create_fasta', {})
 
-    # 設定値の取得
+    # Get settings
     input_file = fasta_config.get('input_file', 'primer3_output.list')
     output_file = fasta_config.get('output_file', 'primer3.fa')
 
-    # 入力ファイルの存在確認
+    # Check input file existence
     if not os.path.exists(input_file):
-        print(f"エラー: 入力ファイルが見つかりません: {input_file}", file=sys.stderr)
+        print(f"Error: Input file not found: {input_file}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"入力ファイル: {input_file}")
-    print(f"出力ファイル: {output_file}")
+    print(f"Input file: {input_file}")
+    print(f"Output file: {output_file}")
 
-    # プライマー配列のパターン
+    # Primer sequence patterns
     left_pattern = re.compile(r'^(PRIMER_LEFT_\d+_SEQUENCE)=(\w+)$')
     right_pattern = re.compile(r'^(PRIMER_RIGHT_\d+_SEQUENCE)=(\w+)$')
     seq_id_pattern = re.compile(r'^SEQUENCE_ID=(.+)$')
@@ -49,13 +49,13 @@ def create_fasta(config: dict) -> None:
             for line in fin:
                 line = line.rstrip('\n')
 
-                # SEQUENCE_IDの取得
+                # Get SEQUENCE_ID
                 match = seq_id_pattern.match(line)
                 if match:
                     seq_id = match.group(1)
                     continue
 
-                # PRIMER_LEFT_*_SEQUENCEのマッチ
+                # Match PRIMER_LEFT_*_SEQUENCE
                 match = left_pattern.match(line)
                 if match:
                     primer_name = match.group(1)
@@ -65,7 +65,7 @@ def create_fasta(config: dict) -> None:
                     fout.write(f"{sequence}\n")
                     continue
 
-                # PRIMER_RIGHT_*_SEQUENCEのマッチ
+                # Match PRIMER_RIGHT_*_SEQUENCE
                 match = right_pattern.match(line)
                 if match:
                     primer_name = match.group(1)
@@ -75,18 +75,18 @@ def create_fasta(config: dict) -> None:
                     fout.write(f"{sequence}\n")
                     continue
 
-    print(f"完了: {output_file} を作成しました")
+    print(f"Done: Created {output_file}")
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 createFasta.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 createFasta.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-プライマーリスト作成とカウントを実行するスクリプト
+Script to create primer list and run counting
 
-使用方法:
+Usage:
     python3 run_make_primer_list.py config.yaml
 
-処理内容:
-1. possiblePair.listファイルを作成（対象種のペア候補ファイルをリスト化）
-2. make_primerList3_Wo5000.pyを実行（ユニークなプライマーペアを抽出）
-3. count.pyを実行（プライマー数と遺伝子数をカウント）
+Processing:
+1. Create possiblePair.list file (list pair candidate files for target species)
+2. Run make_primerList3_Wo5000.py (extract unique primer pairs)
+3. Run count.py (count primers and genes)
 
-設定ファイルのmake_primer_listセクションから設定を読み込みます。
+Reads settings from the make_primer_list section of the config file.
 """
 
 import subprocess
@@ -21,27 +21,27 @@ import yaml
 
 
 def load_config(config_path: str) -> dict:
-    """設定ファイルを読み込む"""
+    """Load config file"""
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def get_executable(config, name, fallback=None):
     """
-    実行ファイルパスを取得する
+    Get executable path
 
-    優先順位:
+    Priority:
     1. config['executables'][name]
-    2. fallback（指定された場合）
-    3. PATHから検索
-    4. name自体
+    2. fallback (if specified)
+    3. Search from PATH
+    4. name itself
     """
     executables = config.get('executables') or {}
     if name in executables and executables[name]:
         return executables[name]
     if fallback:
         return fallback
-    # PATHから検索
+    # Search from PATH
     path = shutil.which(name)
     if path:
         return path
@@ -49,9 +49,9 @@ def get_executable(config, name, fallback=None):
 
 
 def run_python_script(python_exec: str, script: str, capture_output: bool = True) -> str:
-    """Pythonスクリプトを実行する"""
+    """Run a Python script"""
     cmd = [python_exec, script]
-    print(f"  コマンド: {' '.join(cmd)}")
+    print(f"  Command: {' '.join(cmd)}")
 
     result = subprocess.run(
         cmd,
@@ -64,7 +64,7 @@ def run_python_script(python_exec: str, script: str, capture_output: bool = True
         print(result.stdout)
 
     if result.returncode != 0:
-        print(f"エラー: {script}の実行に失敗しました", file=sys.stderr)
+        print(f"Error: {script} execution failed", file=sys.stderr)
         if result.stderr:
             print(f"stderr: {result.stderr}", file=sys.stderr)
         sys.exit(result.returncode)
@@ -73,39 +73,39 @@ def run_python_script(python_exec: str, script: str, capture_output: bool = True
 
 
 def run_make_primer_list(config: dict) -> None:
-    """プライマーリスト作成処理を実行する"""
+    """Run primer list creation process"""
     primer_config = config.get('make_primer_list', {})
 
-    # Pythonの実行ファイルパス（executables セクション優先）
+    # Python executable path (executables section takes priority)
     python_exec = get_executable(config, 'python3')
 
-    # possiblePair.listに含めるファイルリスト
+    # List of files to include in possiblePair.list
     pair_files = primer_config.get('pair_files', [])
     if not pair_files:
-        print("エラー: pair_filesが指定されていません", file=sys.stderr)
+        print("Error: pair_files not specified", file=sys.stderr)
         sys.exit(1)
 
-    # possiblePair.listのパス
+    # possiblePair.list path
     pair_list_file = primer_config.get('pair_list_file', 'possiblePair.list')
 
-    # スクリプトのパス
+    # Script paths
     make_primer_script = primer_config.get('make_primer_script', 'make_primerList3_Wo5000.py')
     count_script = primer_config.get('count_script', 'count.py')
 
     print(f"Python: {python_exec}")
-    print(f"make_primerList3 スクリプト: {make_primer_script}")
-    print(f"count スクリプト: {count_script}")
+    print(f"make_primerList3 script: {make_primer_script}")
+    print(f"count script: {count_script}")
     print()
 
-    # 1. possiblePair.listファイルを作成
-    print("1. possiblePair.listを作成します")
+    # 1. Create possiblePair.list file
+    print("1. Creating possiblePair.list")
     missing_files = []
     for pair_file in pair_files:
         if not os.path.exists(pair_file):
             missing_files.append(pair_file)
 
     if missing_files:
-        print(f"エラー: 以下のファイルが見つかりません:", file=sys.stderr)
+        print(f"Error: The following files were not found:", file=sys.stderr)
         for f in missing_files:
             print(f"  - {f}", file=sys.stderr)
         sys.exit(1)
@@ -113,44 +113,44 @@ def run_make_primer_list(config: dict) -> None:
     with open(pair_list_file, 'w', encoding='utf-8') as f:
         for pair_file in pair_files:
             f.write(f"{pair_file}\n")
-    print(f"   出力: {pair_list_file}")
-    print(f"   ファイル数: {len(pair_files)}")
+    print(f"   Output: {pair_list_file}")
+    print(f"   Number of files: {len(pair_files)}")
     for pair_file in pair_files:
         print(f"     - {pair_file}")
     print()
 
-    # スクリプトの存在確認
+    # Check script existence
     if not os.path.exists(make_primer_script):
-        print(f"エラー: スクリプトが見つかりません: {make_primer_script}", file=sys.stderr)
+        print(f"Error: Script not found: {make_primer_script}", file=sys.stderr)
         sys.exit(1)
 
     if not os.path.exists(count_script):
-        print(f"エラー: スクリプトが見つかりません: {count_script}", file=sys.stderr)
+        print(f"Error: Script not found: {count_script}", file=sys.stderr)
         sys.exit(1)
 
-    # 2. make_primerList3_Wo5000.pyを実行
-    print("2. make_primerList3_Wo5000.py を実行します")
+    # 2. Run make_primerList3_Wo5000.py
+    print("2. Running make_primerList3_Wo5000.py")
     run_python_script(python_exec, make_primer_script)
-    print("   出力: unique_primer3.tab")
+    print("   Output: unique_primer3.tab")
     print()
 
-    # 3. count.pyを実行
-    print("3. count.py を実行します")
+    # 3. Run count.py
+    print("3. Running count.py")
     run_python_script(python_exec, count_script)
     print()
 
-    print("全ての処理が完了しました")
+    print("All processing completed")
 
 
 def main():
     if len(sys.argv) != 2:
-        print("使用方法: python3 run_make_primer_list.py <config.yaml>", file=sys.stderr)
+        print("Usage: python3 run_make_primer_list.py <config.yaml>", file=sys.stderr)
         sys.exit(1)
 
     config_path = sys.argv[1]
 
     if not os.path.exists(config_path):
-        print(f"エラー: 設定ファイルが見つかりません: {config_path}", file=sys.stderr)
+        print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
 
     config = load_config(config_path)

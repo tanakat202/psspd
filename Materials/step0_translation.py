@@ -7,7 +7,7 @@ import yaml
 
 
 def translation(seq, bef, output_aa, output_codons, codon_dict):
-    """コドン配列をアミノ酸配列に翻訳する"""
+    """Translate codon sequences to amino acid sequences"""
     seq = seq.replace("a", "A").replace("t", "T").replace("g", "G").replace("c", "C")
     output_codons.write(seq + "\n")
     data = list(seq)
@@ -25,7 +25,7 @@ def translation(seq, bef, output_aa, output_codons, codon_dict):
 
 
 def process_species(input_file, prefix, codon_dict):
-    """1種分の翻訳処理を実行する"""
+    """Process translation for one species"""
     print(f"Processing: {prefix} ({input_file})")
 
     # directory prefix
@@ -83,11 +83,11 @@ def main():
 
         codon_file = config['codon_file']
 
-        # speciesリストがあれば複数種処理、なければ従来形式
+        # Process multiple species if species list exists, otherwise use legacy format
         if 'species' in config:
             species_list = config['species']
         elif 'input_file' in config and 'prefix' in config:
-            # 後方互換性: 従来形式
+            # Backward compatibility: legacy format
             species_list = [{
                 'input_file': config['input_file'],
                 'prefix': config['prefix']
@@ -121,7 +121,7 @@ def main():
         print(f"Error: Codon file '{codon_file}' not found.")
         return
 
-    # 各種を処理
+    # Process each species
     for species in species_list:
         try:
             input_file = species['input_file']
