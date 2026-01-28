@@ -1,0 +1,144 @@
+#!/usr/bin/python3
+from pprint import pprint
+import sys
+import os
+import re
+import yaml
+
+
+def translation(seq, bef, output_aa, output_codons, codon_dict):
+    """コドン配列をアミノ酸配列に翻訳する"""
+    seq = seq.replace("a", "A").replace("t", "T").replace("g", "G").replace("c", "C")
+    output_codons.write(seq + "\n")
+    data = list(seq)
+    num = int((len(data)+1)/3+1)
+    for i in range(1, num):
+        j = i * 3 - 3
+        codon = seq[j:j+3]
+        if codon in codon_dict and re.search(r"\w", codon_dict[codon]):
+            output_aa.write(codon_dict[codon])
+        elif re.match(r"^\w$", codon) or re.match(r"^\w\w$", codon):
+            print(f"{bef}\tLAST\t{codon}")
+        else:
+            output_aa.write("X")
+    output_aa.write("\n")
+
+
+def process_species(input_file, prefix, codon_dict):
+    """1種分の翻訳処理を実行する"""
+    print(f"Processing: {prefix} ({input_file})")
+
+    # directory prefix
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+
+    # Open output files for writing
+    out_aa_path = f"{prefix}/{prefix}.aa.fasta"
+    out_codons_path = f"{prefix}/{prefix}.cds.fasta"
+    out_list_path = f"{prefix}/{prefix}.list"
+
+    with open(out_aa_path, "w") as output_aa, \
+         open(out_codons_path, "w") as output_codons, \
+         open(out_list_path, "w") as open_list:
+
+        A = 0
+        acc = ""
+        bef = ""
+        seq = ""
+
+        with open(input_file, "r") as in_file:
+            for line in in_file:
+                line = line.strip()
+                if line.startswith(">"):
+                    if "[protein_id=" in line:
+                        acc = re.search(r"\[protein_id\=(\S+)\]", line).group(1)
+                    if bef and re.search(r"\w", bef):
+                        translation(seq, bef, output_aa, output_codons, codon_dict)
+
+                    A = A + 1
+                    open_list.write(f"gene{A}\t{acc}\n")
+                    output_aa.write(f">{prefix}_gene{A}\n")
+                    output_codons.write(f">{prefix}_gene{A}\n")
+                    bef = acc
+                    seq = ""
+                else:
+                    seq = seq + line
+
+            if seq:
+                translation(seq, bef, output_aa, output_codons, codon_dict)
+
+    print(f"  -> {out_aa_path}, {out_codons_path}, {out_list_path}")
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python3 step0_translation.py <CONFIG_FILE>")
+        return
+
+    config_file = sys.argv[1]
+
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+
+        codon_file = config['codon_file']
+
+        # speciesリストがあれば複数種処理、なければ従来形式
+        if 'species' in config:
+            species_list = config['species']
+        elif 'input_file' in config and 'prefix' in config:
+            # 後方互換性: 従来形式
+            species_list = [{
+                'input_file': config['input_file'],
+                'prefix': config['prefix']
+            }]
+        else:
+            print("Error: 'species' list or 'input_file'/'prefix' required in config.")
+            return
+
+    except FileNotFoundError:
+        print(f"Error: Config file '{config_file}' not found.")
+        return
+    except KeyError as e:
+        print(f"Error: Required key {e} not found in config file.")
+        return
+    except yaml.YAMLError as e:
+        print(f"Error: Invalid YAML format in config file: {e}")
+        return
+
+    # Load codon table
+    codon_dict = {}
+    try:
+        with open(codon_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                match = re.match(r"(\w\w\w)\t(\S)", line)
+                if match:
+                    codon = match.group(1)
+                    aa = match.group(2)
+                    codon_dict[codon] = aa
+    except FileNotFoundError:
+        print(f"Error: Codon file '{codon_file}' not found.")
+        return
+
+    # 各種を処理
+    for species in species_list:
+        try:
+            input_file = species['input_file']
+            prefix = species['prefix']
+            process_species(input_file, prefix, codon_dict)
+        except KeyError as e:
+            print(f"Error: Missing {e} in species entry: {species}")
+            return
+        except FileNotFoundError:
+            print(f"Error: Input file '{input_file}' not found.")
+            return
+        except Exception as e:
+            print(f"Error processing {prefix}: {str(e)}", file=sys.stderr)
+            return
+
+    print(f"Completed: {len(species_list)} species processed.")
+
+
+if __name__ == "__main__":
+    main()

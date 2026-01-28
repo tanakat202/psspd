@@ -1,0 +1,264 @@
+# step0_translation.py 設定ファイルサンプル
+# 使用方法: python3 step0_translation.py config_sample.yaml
+
+#===========================================================
+# 実行ファイル設定
+# 外部ツールの実行ファイルパスをここで一括管理します
+# 指定しない場合はPATHから探します
+#===========================================================
+executables:
+  # BLAST+ツール
+  # makeblastdb: "makeblastdb"    # makeblastdbの実行ファイルパス
+  # blastp: "blastp"              # blastpの実行ファイルパス
+  # blastn: "blastn"              # blastnの実行ファイルパス
+
+  # GMAP
+  # gmap_build: "gmap_build"      # gmap_buildの実行ファイルパス
+  # gmap: "gmap"                  # gmapの実行ファイルパス
+  # perl: "perl"                  # gmap_buildのshebangが壊れている場合に指定
+
+  # Primer3
+  # primer3_core: "primer3_core"  # primer3_coreの実行ファイルパス
+
+  # Python（通常は指定不要）
+  # python3: "python3"            # Pythonインタープリタのパス
+
+#===========================================================
+# 以下、各ステップの設定
+#===========================================================
+
+# 処理対象の種リスト（複数指定可能）
+# 各種に対して以下のファイルが生成されます:
+#   {prefix}/{prefix}.aa.fasta    - アミノ酸配列
+#   {prefix}/{prefix}.cds.fasta   - CDS配列
+#   {prefix}/{prefix}.list        - 遺伝子リスト
+species:
+  - prefix: "SpeciesA"
+    input_file: "DL_data/SpeciesA_cds_from_genomic.fna"
+  - prefix: "SpeciesB"
+    input_file: "DL_data/SpeciesB_cds_from_genomic.fna"
+  - prefix: "SpeciesC"
+    input_file: "DL_data/SpeciesC_cds_from_genomic.fna"
+
+# コドンテーブルファイルのパス（必須）
+# フォーマット: コドン<TAB>アミノ酸
+# 例: ATG	M
+codon_file: "Codon.txt"
+
+# BLASTPデータベース構築設定
+build_blastp_db:
+  # 入力FASTAファイルのリスト（必須）
+  input_files:
+    - "Materials/SpeciesA/SpeciesA.aa.fasta"
+    - "Materials/SpeciesB/SpeciesB.aa.fasta"
+    - "Materials/SpeciesC/SpeciesC.aa.fasta"
+  
+  # 結合後のFASTAファイルパス（必須）
+  output_fasta: "BLASTP/all_aa.fasta"
+  
+  # データベースタイプ（デフォルト: prot）
+  # prot: タンパク質データベース、nucl: 核酸データベース
+  dbtype: "prot"
+
+# BLASTP設定
+blastp:
+  # BLASTPデータベースファイルパス（必須）
+  database: "BLASTP/all_aa.fasta"
+  
+  # クエリファイルパス（必須）
+  query: "BLASTP/all_aa.fasta"
+  
+  # 出力ファイルパス（必須）
+  output: "BLASTP/blastp.out"
+  
+  # E-value閾値（デフォルト: 1E-5）
+  evalue: "1E-5"
+  
+  # 出力フォーマット（デフォルト: 6 = tabular format）
+  outfmt: 6
+  
+  # 使用スレッド数（デフォルト: 4）
+  num_threads: 4
+
+# pick_nohit_genes.py設定
+no_hit_analysis:
+  # 解析対象種名（必須）
+  # 例: SpeciesA, SpeciesB, SpeciesC など
+  target: "SpeciesA"
+
+# extract_nohit.fa.py設定
+extract_nohit:
+  # 解析対象種名（必須）
+  target: "SpeciesA"
+  
+  # ヒットしない遺伝子リストファイル（必須）
+  nohits_file: "BLASTP/blastp_nohits.tab"
+  
+  # 入力CDSファイルパス（必須）
+  # {target}は実際の種名に置換されます
+  input_cds_file: "Materials/{target}/{target}.cds.fasta"
+  
+  # 出力ファイルパス（必須）
+  output_file: "BLASTP/Nohit_cds.fa"
+
+# GMAP データベース構築設定
+gmap_build:
+  # データベースを作成するディレクトリ（必須）
+  # -D オプションに対応
+  db_dir: "GMAP"
+
+  # 構築するデータベースのリスト
+  # 複数のゲノムに対してデータベースを構築できます
+  databases:
+    - name: "SpeciesB"
+      genome: "Materials/DL_data/SpeciesB_genome.fna"
+    - name: "SpeciesC"
+      genome: "Materials/DL_data/SpeciesC_genome.fna"
+
+# GMAP 実行設定
+# 使用方法: cd GMAP && python3 run_gmap.py ../config.yaml
+gmap:
+  # クエリファイル（BLASTPでヒットしなかったCDS配列）
+  query: "BLASTP/Nohit_cds.fa"
+
+  # 出力フォーマット（デフォルト: gff3_gene）
+  # 他のオプション: gff3_match_cdna, gff3_match_est, coords, align, etc.
+  output_format: "gff3_gene"
+
+  # 検索対象データベースのリスト
+  # name: GMAPデータベース名（gmap_build.databasesで構築したもの）
+  # output: 出力GFF3ファイル名
+  databases:
+    - name: "SpeciesB"
+      output: "SpeciesB.gff3"
+    - name: "SpeciesC"
+      output: "SpeciesC.gff3"
+
+# make_hit_list.py設定
+make_hit_list:
+  # 処理対象のGFF3ファイルリスト
+  # prefixを指定すると {prefix}.gff3 を読み込み {prefix}_hit.tab を出力
+  targets:
+    - prefix: "SpeciesB"
+    - prefix: "SpeciesC"
+
+# make_complete_list.py設定
+make_complete_list:
+  # ヒットリストファイルのリスト（必須）
+  # 各ファイルからヒットしたIDを収集
+  hit_files:
+    - "GMAP/SpeciesB_hit.tab"
+    - "GMAP/SpeciesC_hit.tab"
+
+  # 入力CDSファイル（必須）
+  # BLASTPでヒットしなかったCDS配列
+  input_cds: "BLASTP/Nohit_cds.fa"
+
+  # 出力ファイル（必須）
+  output_list: "GMAP/Target.list"
+  output_cds: "GMAP/Target_cds.fa"
+
+# Primer3入力ファイル生成設定
+# 使用方法: cd Primer3 && python3 make_primer3_input.py ../config.yaml
+make_primer3_input:
+  # 入力CDSファイル（Target_cds.fa）
+  input_cds: "GMAP/Target_cds.fa"
+
+  # 出力ファイル（primer3_input.list）
+  output_file: "Primer3/primer3_input.list"
+
+  # Primer3パラメータ（オプション、デフォルト値あり）
+  primer_opt_size: 20
+  primer_min_size: 18
+  primer_max_size: 27
+  product_size_range: "300-500"
+
+# Primer3設定
+# 使用方法: cd Primer3 && python3 run_primer3.py ../config.yaml
+primer3:
+  # 入力ファイルパス（必須）
+  # primer3_core用の入力ファイル
+  input_file: "primer3_input.list"
+
+  # 出力ファイルパス（必須）
+  # primer3_coreの出力先
+  output_file: "primer3_output.list"
+
+# createFasta設定
+# 使用方法: cd Primer3 && python3 createFasta.py ../config.yaml
+create_fasta:
+  # 入力ファイル（primer3_coreの出力）
+  input_file: "primer3_output.list"
+
+  # 出力FASTAファイル
+  output_file: "primer3.fa"
+
+# BLASTNデータベース構築設定
+# 使用方法: cd Primer3 && python3 build_blastn_db.py ../config.yaml
+build_blastn_db:
+  # データベースタイプ（デフォルト: nucl）
+  dbtype: "nucl"
+
+  # 構築するデータベースのリスト
+  # name: データベース名
+  # input: 入力ゲノムファイルのパス
+  # output: 出力データベース名（省略時は{name}.fnaを使用）
+  databases:
+    - name: "SpeciesA"
+      input: "/path/to/SpeciesA_genome.fna"
+      output: "SpeciesA.fna"
+    - name: "SpeciesB"
+      input: "/path/to/SpeciesB_genome.fna"
+      output: "SpeciesB.fna"
+    - name: "SpeciesC"
+      input: "/path/to/SpeciesC_genome.fna"
+      output: "SpeciesC.fna"
+
+# BLASTN（blastn-short）設定
+# 使用方法: cd Primer3 && python3 run_blastn_short.py ../config.yaml
+blastn_short:
+  # クエリファイル（プライマー配列）
+  query: "primer3.fa"
+
+  # 出力フォーマット（デフォルト: 6 = tabular）
+  outfmt: 6
+
+  # スレッド数（デフォルト: 4）
+  num_threads: 4
+
+  # 検索対象データベースのリスト
+  # name: データベース名
+  # db: BLASTデータベースのパス
+  # output: 出力ファイル名（省略時は{name}.outを使用）
+  databases:
+    - name: "SpeciesA"
+      db: "SpeciesA.fna"
+      output: "SpeciesA.out"
+    - name: "SpeciesB"
+      db: "SpeciesB.fna"
+      output: "SpeciesB.out"
+    - name: "SpeciesC"
+      db: "SpeciesC.fna"
+      output: "SpeciesC.out"
+
+# ヒット領域抽出・ペア候補作成設定
+# 使用方法: cd Primer3 && python3 run_extract_hit_regions.py ../config.yaml
+extract_hit_regions:
+  # 処理対象の種リスト
+  # prefix: BLASTN出力ファイルのプレフィックス（{prefix}.outを読み込み）
+  targets:
+    - prefix: "SpeciesA"
+    - prefix: "SpeciesB"
+    - prefix: "SpeciesC"
+
+# プライマーリスト作成設定
+# 使用方法: cd Primer3 && python3 run_make_primer_list.py ../config.yaml
+make_primer_list:
+  # possiblePair.listに含めるペア候補ファイルのリスト
+  # SpeciesAは基準種なので含めない（make_primerList3_Wo5000.pyで別途読み込み）
+  pair_files:
+    - "SpeciesB_possiblePair2000.tab"
+    - "SpeciesC_possiblePair2000.tab"
+
+  # possiblePair.listの出力パス（オプション）
+  pair_list_file: "possiblePair.list"
