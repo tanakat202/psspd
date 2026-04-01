@@ -68,6 +68,8 @@ def pair():
     global count
     # print(f"bef={bef}, left={left}, right={right}")
     # print(f"left[0]={left[0]}, right[0]={right[0]}")
+    if not left or not right:
+        return
     if (left[0] and re.match(r'\w', left[0])) and (right[0] and re.match(r'\w', right[0])):
         for l in left:
             for r in right:
