@@ -11,12 +11,49 @@ This tool is a pipeline to design strain-specific primer sets based on the genom
 2.	GMAP: version 2017-03-17
 3.	Primer3: libprimer3 release 2.6.1
 4.	Python Library
+
+```
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ pip install pyyaml
+```
 
 
 **How to use the pipeline**
 ./run_pipeline.sh config.yaml
 
 You need to customize configuration file named “config.yaml” to define $PATH to tools, input files, output files and so on.
+
+## setup conda
+
+## setup test data
+
+setup test input data and Codon.txt
+
+```
+cp -r /path/to/DL_Data Materials/
+cp /path/to/Codon.txt Materials/
+```
+
+copy sample config
+
+```
+cp config_sample.yaml config.yaml
+```
+
+## create conda env
+
+```
+conda env create -n sampleenv -f environment.yaml
+```
+
+## execute with conda
+
+```
+conda activate primer-design-tool
+```
+
+
+```
+./run_pipeline.sh config.yaml
+```
