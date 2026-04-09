@@ -44,7 +44,7 @@ cp config_sample.yaml config.yaml
 ## create conda env
 
 ```
-conda env create -n sampleenv -f environment.yaml
+conda env create -n primer-design-tool -f environment.yaml
 ```
 
 ## execute with conda
