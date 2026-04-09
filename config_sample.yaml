@@ -34,11 +34,11 @@ executables:
 #   {prefix}/{prefix}.list        - Gene list
 species:
   - prefix: "SpeciesA"
-    input_file: "DL_data/SpeciesA_cds_from_genomic.fna"
+    input_file: "DL_data/cds_from_GCA_002007945.1_ASM200794v1_genomic.fna"
   - prefix: "SpeciesB"
-    input_file: "DL_data/SpeciesB_cds_from_genomic.fna"
+    input_file: "DL_data/GCA_000184455.3_cds_from_genomic.fna"
   - prefix: "SpeciesC"
-    input_file: "DL_data/SpeciesC_cds_from_genomic.fna"
+    input_file: "DL_data/GCA_030270545.1_cds_from_genomic.fna"
 
 # Path to codon table file (required)
 # Format: codon<TAB>amino_acid
@@ -49,12 +49,12 @@ codon_file: "Codon.txt"
 build_blastp_db:
   # List of input FASTA files (required)
   input_files:
-    - "Materials/SpeciesA/SpeciesA.aa.fasta"
-    - "Materials/SpeciesB/SpeciesB.aa.fasta"
-    - "Materials/SpeciesC/SpeciesC.aa.fasta"
+    - "../Materials/SpeciesA/SpeciesA.aa.fasta"
+    - "../Materials/SpeciesB/SpeciesB.aa.fasta"
+    - "../Materials/SpeciesC/SpeciesC.aa.fasta"
 
   # Concatenated FASTA file path (required)
-  output_fasta: "BLASTP/all_aa.fasta"
+  output_fasta: "../BLASTP/all_aa.fasta"
 
   # Database type (default: prot)
   # prot: Protein database, nucl: Nucleotide database
@@ -63,13 +63,13 @@ build_blastp_db:
 # BLASTP settings
 blastp:
   # BLASTP database file path (required)
-  database: "BLASTP/all_aa.fasta"
+  database: "../BLASTP/all_aa.fasta"
 
   # Query file path (required)
-  query: "BLASTP/all_aa.fasta"
+  query: "../BLASTP/all_aa.fasta"
 
   # Output file path (required)
-  output: "BLASTP/blastp.out"
+  output: "../BLASTP/blastp.out"
 
   # E-value threshold (default: 1E-5)
   evalue: "1E-5"
@@ -92,14 +92,14 @@ extract_nohit:
   target: "SpeciesA"
 
   # No-hit gene list file (required)
-  nohits_file: "BLASTP/blastp_nohits.tab"
+  nohits_file: "../BLASTP/blastp_nohits.tab"
 
   # Input CDS file path (required)
   # {target} is replaced with the actual species name
-  input_cds_file: "Materials/{target}/{target}.cds.fasta"
+  input_cds_file: "../Materials/{target}/{target}.cds.fasta"
 
   # Output file path (required)
-  output_file: "BLASTP/Nohit_cds.fa"
+  output_file: "../BLASTP/Nohit_cds.fa"
 
 # GMAP database build settings
 gmap_build:
@@ -111,15 +111,15 @@ gmap_build:
   # Databases can be built for multiple genomes
   databases:
     - name: "SpeciesB"
-      genome: "Materials/DL_data/SpeciesB_genome.fna"
+      genome: "../Materials/DL_data/GCA_000184455.3_ASM18445v3_genomic.fna"
     - name: "SpeciesC"
-      genome: "Materials/DL_data/SpeciesC_genome.fna"
+      genome: "../Materials/DL_data/GCA_030270545.1_ASM3027054v1_genomic.fna"
 
 # GMAP execution settings
 # Usage: cd GMAP && python3 run_gmap.py ../config.yaml
 gmap:
   # Query file (CDS sequences with no BLASTP hits)
-  query: "BLASTP/Nohit_cds.fa"
+  query: "../BLASTP/Nohit_cds.fa"
 
   # Output format (default: gff3_gene)
   # Other options: gff3_match_cdna, gff3_match_est, coords, align, etc.
@@ -147,25 +147,25 @@ make_complete_list:
   # List of hit list files (required)
   # Collects hit IDs from each file
   hit_files:
-    - "GMAP/SpeciesB_hit.tab"
-    - "GMAP/SpeciesC_hit.tab"
+    - "../GMAP/SpeciesB_hit.tab"
+    - "../GMAP/SpeciesC_hit.tab"
 
   # Input CDS file (required)
   # CDS sequences with no BLASTP hits
-  input_cds: "BLASTP/Nohit_cds.fa"
+  input_cds: "../BLASTP/Nohit_cds.fa"
 
   # Output file (required)
-  output_list: "GMAP/Target.list"
-  output_cds: "GMAP/Target_cds.fa"
+  output_list: "../GMAP/Target.list"
+  output_cds: "../GMAP/Target_cds.fa"
 
 # Primer3 input file generation settings
 # Usage: cd Primer3 && python3 make_primer3_input.py ../config.yaml
 make_primer3_input:
   # Input CDS file (Target_cds.fa)
-  input_cds: "GMAP/Target_cds.fa"
+  input_cds: "../GMAP/Target_cds.fa"
 
   # Output file (primer3_input.list)
-  output_file: "Primer3/primer3_input.list"
+  output_file: "../Primer3/primer3_input.list"
 
   # Primer3 parameters (optional, with default values)
   primer_opt_size: 20
@@ -205,13 +205,13 @@ build_blastn_db:
   # output: Output database name (defaults to {name}.fna if omitted)
   databases:
     - name: "SpeciesA"
-      input: "/path/to/SpeciesA_genome.fna"
+      input: "../Materials/DL_data/GCA_002007945.1_ASM200794v1_genomic.fna"
       output: "SpeciesA.fna"
     - name: "SpeciesB"
-      input: "/path/to/SpeciesB_genome.fna"
+      input: "../Materials/DL_data/GCA_000184455.3_ASM18445v3_genomic.fna"
       output: "SpeciesB.fna"
     - name: "SpeciesC"
-      input: "/path/to/SpeciesC_genome.fna"
+      input: "../Materials/DL_data/GCA_030270545.1_ASM3027054v1_genomic.fna"
       output: "SpeciesC.fna"
 
 # BLASTN (blastn-short) settings
