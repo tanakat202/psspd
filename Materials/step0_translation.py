@@ -5,6 +5,27 @@ import os
 import re
 import yaml
 
+# Fixed directory for species input files (relative to Materials/)
+INPUT_DIR = "DL_data"
+
+
+def resolve_input_file(filename):
+    """Resolve species input filename under INPUT_DIR, rejecting path traversal.
+
+    Only a plain filename (no directory components, not absolute) is accepted.
+    """
+    if not isinstance(filename, str) or not filename:
+        raise ValueError(f"input_file must be a non-empty string: {filename!r}")
+    if filename in ('.', '..'):
+        raise ValueError(f"input_file must be a filename, not '{filename}'")
+    if os.path.isabs(filename) or '/' in filename or '\\' in filename \
+            or filename != os.path.basename(filename):
+        raise ValueError(
+            f"input_file '{filename}' must be a plain filename "
+            f"(no path components). Place files under '{INPUT_DIR}/'."
+        )
+    return os.path.join(INPUT_DIR, filename)
+
 
 def translation(seq, bef, output_aa, output_codons, codon_dict):
     """Translate codon sequences to amino acid sequences"""
@@ -122,16 +143,26 @@ def main():
         return
 
     # Process each species
+    input_dir_abs = os.path.abspath(INPUT_DIR)
     for species in species_list:
         try:
-            input_file = species['input_file']
+            input_file = resolve_input_file(species['input_file'])
             prefix = species['prefix']
             process_species(input_file, prefix, codon_dict)
         except KeyError as e:
             print(f"Error: Missing {e} in species entry: {species}")
             return
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return
         except FileNotFoundError:
-            print(f"Error: Input file '{input_file}' not found.")
+            print(
+                f"Error: Input file '{input_file}' not found.\n"
+                f"  Place species input files in: {input_dir_abs}/\n"
+                f"  (config 'input_file' must be a plain filename, "
+                f"resolved relative to '{INPUT_DIR}/')",
+                file=sys.stderr,
+            )
             return
         except Exception as e:
             print(f"Error processing {prefix}: {str(e)}", file=sys.stderr)

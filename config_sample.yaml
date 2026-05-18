@@ -28,17 +28,18 @@ executables:
 #===========================================================
 
 # Species list to process (multiple entries allowed)
+# input_file: filename only. Files must be placed under Materials/DL_data/
 # The following files are generated for each species:
 #   {prefix}/{prefix}.aa.fasta    - Amino acid sequences
 #   {prefix}/{prefix}.cds.fasta   - CDS sequences
 #   {prefix}/{prefix}.list        - Gene list
 species:
   - prefix: "SpeciesA"
-    input_file: "DL_data/cds_from_GCA_002007945.1_ASM200794v1_genomic.fna"
+    input_file: "cds_from_GCA_002007945.1_ASM200794v1_genomic.fna"
   - prefix: "SpeciesB"
-    input_file: "DL_data/GCA_000184455.3_cds_from_genomic.fna"
+    input_file: "GCA_000184455.3_cds_from_genomic.fna"
   - prefix: "SpeciesC"
-    input_file: "DL_data/GCA_030270545.1_cds_from_genomic.fna"
+    input_file: "GCA_030270545.1_cds_from_genomic.fna"
 
 # Path to codon table file (required)
 # Format: codon<TAB>amino_acid
