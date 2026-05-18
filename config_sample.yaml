@@ -263,3 +263,18 @@ make_primer_list:
 
   # Output path for possiblePair.list (optional)
   pair_list_file: "possiblePair.list"
+
+# Append original sequence IDs to unique_primer3.tab
+# Usage: cd Primer3 && python3 add_original_id.py ../config.yaml
+# Reads per-species mapping files saved by step0_translation.py:
+#   {materials_dir}/{prefix}/{prefix}.list
+# and appends the original FASTA ID as a new last column of input_file.
+add_original_id:
+  # Input file (output of make_primerList3_Wo5000.py)
+  input_file: "unique_primer3.tab"
+
+  # Output file (with original ID appended as the last column)
+  output_file: "unique_primer3_with_original_id.tab"
+
+  # Path to Materials directory (relative to Primer3/)
+  materials_dir: "../Materials"
