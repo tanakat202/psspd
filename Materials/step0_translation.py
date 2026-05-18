@@ -5,6 +5,27 @@ import os
 import re
 import yaml
 
+# Fixed directory for species input files (relative to Materials/)
+INPUT_DIR = "DL_data"
+
+
+def resolve_input_file(filename):
+    """Resolve species input filename under INPUT_DIR, rejecting path traversal.
+
+    Only a plain filename (no directory components, not absolute) is accepted.
+    """
+    if not isinstance(filename, str) or not filename:
+        raise ValueError(f"input_file must be a non-empty string: {filename!r}")
+    if filename in ('.', '..'):
+        raise ValueError(f"input_file must be a filename, not '{filename}'")
+    if os.path.isabs(filename) or '/' in filename or '\\' in filename \
+            or filename != os.path.basename(filename):
+        raise ValueError(
+            f"input_file '{filename}' must be a plain filename "
+            f"(no path components). Place files under '{INPUT_DIR}/'."
+        )
+    return os.path.join(INPUT_DIR, filename)
+
 
 def translation(seq, bef, output_aa, output_codons, codon_dict):
     """Translate codon sequences to amino acid sequences"""
@@ -47,11 +68,18 @@ def process_species(input_file, prefix, codon_dict):
         seq = ""
 
         with open(input_file, "r") as in_file:
-            for line in in_file:
+            for lineno, line in enumerate(in_file, start=1):
                 line = line.strip()
                 if line.startswith(">"):
-                    if "[protein_id=" in line:
-                        acc = re.search(r"\[protein_id\=(\S+)\]", line).group(1)
+                    # Extract ID: from the character after '>' up to the first
+                    # whitespace, or to end of line if no whitespace is present.
+                    header_tokens = line[1:].split(maxsplit=1)
+                    acc = header_tokens[0] if header_tokens else ""
+                    if not acc:
+                        raise ValueError(
+                            f"Malformed FASTA header at {input_file}:{lineno}: "
+                            f"'{line}' has no ID (expected '>id ...' format)"
+                        )
                     if bef and re.search(r"\w", bef):
                         translation(seq, bef, output_aa, output_codons, codon_dict)
 
@@ -73,7 +101,7 @@ def process_species(input_file, prefix, codon_dict):
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 step0_translation.py <CONFIG_FILE>")
-        return
+        sys.exit(1)
 
     config_file = sys.argv[1]
 
@@ -94,17 +122,17 @@ def main():
             }]
         else:
             print("Error: 'species' list or 'input_file'/'prefix' required in config.")
-            return
+            sys.exit(1)
 
     except FileNotFoundError:
         print(f"Error: Config file '{config_file}' not found.")
-        return
+        sys.exit(1)
     except KeyError as e:
         print(f"Error: Required key {e} not found in config file.")
-        return
+        sys.exit(1)
     except yaml.YAMLError as e:
         print(f"Error: Invalid YAML format in config file: {e}")
-        return
+        sys.exit(1)
 
     # Load codon table
     codon_dict = {}
@@ -119,23 +147,33 @@ def main():
                     codon_dict[codon] = aa
     except FileNotFoundError:
         print(f"Error: Codon file '{codon_file}' not found.")
-        return
+        sys.exit(1)
 
     # Process each species
+    input_dir_abs = os.path.abspath(INPUT_DIR)
     for species in species_list:
         try:
-            input_file = species['input_file']
+            input_file = resolve_input_file(species['input_file'])
             prefix = species['prefix']
             process_species(input_file, prefix, codon_dict)
         except KeyError as e:
             print(f"Error: Missing {e} in species entry: {species}")
-            return
+            sys.exit(1)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
         except FileNotFoundError:
-            print(f"Error: Input file '{input_file}' not found.")
-            return
+            print(
+                f"Error: Input file '{input_file}' not found.\n"
+                f"  Place species input files in: {input_dir_abs}/\n"
+                f"  (config 'input_file' must be a plain filename, "
+                f"resolved relative to '{INPUT_DIR}/')",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         except Exception as e:
             print(f"Error processing {prefix}: {str(e)}", file=sys.stderr)
-            return
+            sys.exit(1)
 
     print(f"Completed: {len(species_list)} species processed.")
 

@@ -33,6 +33,7 @@ STEP_NAMES=(
     "blastn_run"       # 13: Primer3 - Run BLASTN
     "primer3_extract"  # 14: Primer3 - Extract hit regions
     "primer3_list"     # 15: Primer3 - Create primer list
+    "primer3_annotate" # 16: Primer3 - Append original IDs
 )
 
 MAX_STEP=$((${#STEP_NAMES[@]} - 1))
@@ -322,6 +323,7 @@ REQUIRED_SCRIPTS=(
     "Primer3/run_blastn_short.py"
     "Primer3/run_extract_hit_regions.py"
     "Primer3/run_make_primer_list.py"
+    "Primer3/add_original_id.py"
 )
 
 MISSING_SCRIPTS=()
@@ -651,6 +653,20 @@ if should_run_step 15; then
         cd "$BASE_DIR/Primer3"
         python3 run_make_primer_list.py "$CONFIG_PATH"
         mark_step_completed 15
+    fi
+fi
+
+#-----------------------------------------------------------
+# Step 16: Primer3 - Append original IDs to unique_primer3.tab
+#-----------------------------------------------------------
+if should_run_step 16; then
+    echo ""
+    echo "[Step 16] Primer3: add_original_id.py"
+    echo "------------------------------------------------------------"
+    if ! check_and_ask_skip 16; then
+        cd "$BASE_DIR/Primer3"
+        python3 add_original_id.py "$CONFIG_PATH"
+        mark_step_completed 16
     fi
 fi
 

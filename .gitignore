@@ -4,3 +4,6 @@ archives/
 # Python
 __pycache__/
 *.pyc
+
+# Input data
+Materials/DL_data/
