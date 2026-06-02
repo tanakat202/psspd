@@ -55,10 +55,7 @@ def validate_config(config):
     Returns:
         dict: make_hit_list settings
     """
-    if 'make_hit_list' not in config:
-        print("Error: 'make_hit_list' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
-
+    # The make_hit_list section is optional: targets are derived from 'species'.
     hit_config = config.get('make_hit_list') or {}
 
     # Targets (GFF3 prefixes) are derived from the non-reference species.
