@@ -27,19 +27,34 @@ executables:
 # Settings for each step below
 #===========================================================
 
-# Species list to process (multiple entries allowed)
-# input_file: filename only. Files must be placed under Materials/DL_data/
-# The following files are generated for each species:
+# Species list to process (the single source of truth).
+#
+# Prefixes are assigned automatically from the list order:
+#   1st entry -> AA, 2nd -> AB, ..., 26th -> AZ, 27th -> BA, ... (up to ZZ).
+# Every downstream step derives its per-species settings (database names,
+# targets, file paths, ...) from this list, so species are listed only here.
+#
+# Each entry needs two filenames placed under Materials/DL_data/:
+#   cds:    CDS FASTA (input to step0 translation)
+#   genome: whole-genome FASTA (used to build GMAP / BLASTN databases)
+# step0 generates for each species:
 #   {prefix}/{prefix}.aa.fasta    - Amino acid sequences
 #   {prefix}/{prefix}.cds.fasta   - CDS sequences
-#   {prefix}/{prefix}.list        - Gene list
+#   {prefix}/{prefix}.list        - gene-number -> original-ID mapping
+#
+# reference_count: the first N species are treated as the reference species
+# (default 1). The reference set is used by the no-hit / extract-nohit steps
+# and is read separately when building the primer list; the remaining species
+# are the "other" species used for GMAP and pair-candidate generation.
+reference_count: 1
+
 species:
-  - prefix: "SpeciesA"
-    input_file: "cds_from_GCA_002007945.1_ASM200794v1_genomic.fna"
-  - prefix: "SpeciesB"
-    input_file: "GCA_000184455.3_cds_from_genomic.fna"
-  - prefix: "SpeciesC"
-    input_file: "GCA_030270545.1_cds_from_genomic.fna"
+  - cds: "cds_from_GCA_002007945.1_ASM200794v1_genomic.fna"   # -> AA (reference)
+    genome: "GCA_002007945.1_ASM200794v1_genomic.fna"
+  - cds: "GCA_000184455.3_cds_from_genomic.fna"               # -> AB (other)
+    genome: "GCA_000184455.3_ASM18445v3_genomic.fna"
+  - cds: "GCA_030270545.1_cds_from_genomic.fna"               # -> AC (other)
+    genome: "GCA_030270545.1_ASM3027054v1_genomic.fna"
 
 # Path to codon table file (required)
 # Format: codon<TAB>amino_acid
@@ -47,13 +62,8 @@ species:
 codon_file: "Codon.txt"
 
 # BLASTP database build settings
+# input_files are derived from the species list (all species' .aa.fasta).
 build_blastp_db:
-  # List of input FASTA files (required)
-  input_files:
-    - "../Materials/SpeciesA/SpeciesA.aa.fasta"
-    - "../Materials/SpeciesB/SpeciesB.aa.fasta"
-    - "../Materials/SpeciesC/SpeciesC.aa.fasta"
-
   # Concatenated FASTA file path (required)
   output_fasta: "../BLASTP/all_aa.fasta"
 
@@ -82,42 +92,31 @@ blastp:
   num_threads: 4
 
 # pick_nohit_genes.py settings
-no_hit_analysis:
-  # Target species name (required)
-  # e.g.: SpeciesA, SpeciesB, SpeciesC etc.
-  target: "SpeciesA"
+# The target species are the reference species (see reference_count above),
+# so no per-species setting is needed here.
 
 # extract_nohit.fa.py settings
 extract_nohit:
-  # Target species name (required)
-  target: "SpeciesA"
-
   # No-hit gene list file (required)
   nohits_file: "../BLASTP/blastp_nohits.tab"
 
-  # Input CDS file path (required)
-  # {target} is replaced with the actual species name
+  # Input CDS file path template (required)
+  # {target} is replaced with each reference species' prefix.
   input_cds_file: "../Materials/{target}/{target}.cds.fasta"
 
   # Output file path (required)
   output_file: "../BLASTP/Nohit_cds.fa"
 
 # GMAP database build settings
+# databases (one per non-reference species) are derived from the species list.
 gmap_build:
   # Directory to create the database (required)
   # Corresponds to the -D option
   db_dir: "GMAP"
 
-  # List of databases to build
-  # Databases can be built for multiple genomes
-  databases:
-    - name: "SpeciesB"
-      genome: "../Materials/DL_data/GCA_000184455.3_ASM18445v3_genomic.fna"
-    - name: "SpeciesC"
-      genome: "../Materials/DL_data/GCA_030270545.1_ASM3027054v1_genomic.fna"
-
 # GMAP execution settings
 # Usage: cd GMAP && python3 run_gmap.py ../config.yaml
+# databases (one per non-reference species) are derived from the species list.
 gmap:
   # Query file (CDS sequences with no BLASTP hits)
   query: "../BLASTP/Nohit_cds.fa"
@@ -126,31 +125,13 @@ gmap:
   # Other options: gff3_match_cdna, gff3_match_est, coords, align, etc.
   output_format: "gff3_gene"
 
-  # List of databases to search
-  # name: GMAP database name (built with gmap_build.databases)
-  # output: Output GFF3 file name
-  databases:
-    - name: "SpeciesB"
-      output: "SpeciesB.gff3"
-    - name: "SpeciesC"
-      output: "SpeciesC.gff3"
-
 # make_hit_list.py settings
-make_hit_list:
-  # List of GFF3 files to process
-  # When prefix is specified, reads {prefix}.gff3 and outputs {prefix}_hit.tab
-  targets:
-    - prefix: "SpeciesB"
-    - prefix: "SpeciesC"
+# targets (non-reference species) are derived from the species list; no
+# per-species setting is needed here.
 
 # make_complete_list.py settings
+# hit_files (non-reference species) are derived from the species list.
 make_complete_list:
-  # List of hit list files (required)
-  # Collects hit IDs from each file
-  hit_files:
-    - "../GMAP/SpeciesB_hit.tab"
-    - "../GMAP/SpeciesC_hit.tab"
-
   # Input CDS file (required)
   # CDS sequences with no BLASTP hits
   input_cds: "../BLASTP/Nohit_cds.fa"
@@ -196,27 +177,14 @@ create_fasta:
 
 # BLASTN database build settings
 # Usage: cd Primer3 && python3 build_blastn_db.py ../config.yaml
+# databases (one per species, using each genome) are derived from the species list.
 build_blastn_db:
   # Database type (default: nucl)
   dbtype: "nucl"
 
-  # List of databases to build
-  # name: Database name
-  # input: Path to input genome file
-  # output: Output database name (defaults to {name}.fna if omitted)
-  databases:
-    - name: "SpeciesA"
-      input: "../Materials/DL_data/GCA_002007945.1_ASM200794v1_genomic.fna"
-      output: "SpeciesA.fna"
-    - name: "SpeciesB"
-      input: "../Materials/DL_data/GCA_000184455.3_ASM18445v3_genomic.fna"
-      output: "SpeciesB.fna"
-    - name: "SpeciesC"
-      input: "../Materials/DL_data/GCA_030270545.1_ASM3027054v1_genomic.fna"
-      output: "SpeciesC.fna"
-
 # BLASTN (blastn-short) settings
 # Usage: cd Primer3 && python3 run_blastn_short.py ../config.yaml
+# databases (one per species) are derived from the species list.
 blastn_short:
   # Query file (primer sequences)
   query: "primer3.fa"
@@ -227,43 +195,18 @@ blastn_short:
   # Number of threads (default: 4)
   num_threads: 4
 
-  # List of databases to search
-  # name: Database name
-  # db: Path to BLAST database
-  # output: Output file name (defaults to {name}.out if omitted)
-  databases:
-    - name: "SpeciesA"
-      db: "SpeciesA.fna"
-      output: "SpeciesA.out"
-    - name: "SpeciesB"
-      db: "SpeciesB.fna"
-      output: "SpeciesB.out"
-    - name: "SpeciesC"
-      db: "SpeciesC.fna"
-      output: "SpeciesC.out"
-
 # Hit region extraction and pair candidate creation settings
 # Usage: cd Primer3 && python3 run_extract_hit_regions.py ../config.yaml
+# targets (all species) are derived from the species list.
 extract_hit_regions:
   # Maximum allowed distance (bp) between primer pairs (default: 5000)
   max_distance: 5000
 
-  # List of species to process
-  # prefix: BLASTN output file prefix (reads {prefix}.out)
-  targets:
-    - prefix: "SpeciesA"
-    - prefix: "SpeciesB"
-    - prefix: "SpeciesC"
-
 # Primer list creation settings
 # Usage: cd Primer3 && python3 run_make_primer_list.py ../config.yaml
+# pair_files (non-reference species) are derived from the species list; the
+# reference species' pair file is read separately by make_primerList3_Wo5000.py.
 make_primer_list:
-  # List of pair candidate files to include in possiblePair.list
-  # SpeciesA is the reference species and is not included (Read separately by make_primerList3_Wo5000.py)
-  pair_files:
-    - "SpeciesB_possiblePair.tab"
-    - "SpeciesC_possiblePair.tab"
-
   # Output path for possiblePair.list (optional)
   pair_list_file: "possiblePair.list"
 

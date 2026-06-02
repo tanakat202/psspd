@@ -10,10 +10,10 @@ and performs FASTA file concatenation and BLASTP database construction.
 
 Required settings:
     build_blastp_db:
-        input_files: List of FASTA files
         output_fasta: Concatenated FASTA file path
         makeblastdb_executable: makeblastdb executable path (optional)
         dbtype: Database type (default: prot)
+    # input_files are derived from the top-level 'species' list.
 """
 
 import sys
@@ -22,6 +22,10 @@ import subprocess
 import shutil
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
 
 def get_executable(config, name, fallback=None):
@@ -93,17 +97,19 @@ def validate_config(config):
     db_config = config['build_blastp_db']
 
     # Check required parameters
-    required_params = ['input_files', 'output_fasta']
+    required_params = ['output_fasta']
     for param in required_params:
         if param not in db_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # Check input files
-    input_files = db_config['input_files']
-    if not isinstance(input_files, list):
-        print("Error: 'input_files' must be specified as a list.", file=sys.stderr)
+    # Input FASTA files are derived from the species list (all species).
+    try:
+        db_config['input_files'] = species_config.blastp_input_files(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+    input_files = db_config['input_files']
 
     for input_file in input_files:
         if not os.path.exists(input_file):
@@ -285,13 +291,10 @@ Examples:
 
 Config file example:
     build_blastp_db:
-        input_files:
-            - "../Materials/SpeciesA/SpeciesA.aa.fasta"
-            - "../Materials/SpeciesB/SpeciesB.aa.fasta"
-            - "../Materials/SpeciesC/SpeciesC.aa.fasta"
         output_fasta: "all_aa.fasta"
         dbtype: "prot"  # Optional (default: prot)
-        makeblastdb_executable: "/path/to/makeblastdb"  # Optional
+    # input_files are derived from the top-level 'species' list
+    # (one ../Materials/{prefix}/{prefix}.aa.fasta per species).
         """
     )
 

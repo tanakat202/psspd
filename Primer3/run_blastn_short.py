@@ -15,6 +15,10 @@ import os
 import shutil
 import yaml
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 
 def load_config(config_path: str) -> dict:
     """Load config file"""
@@ -60,8 +64,12 @@ def run_blastn_short(config: dict) -> None:
     # Number of threads (default: 4)
     num_threads = blastn_config.get('num_threads', 4)
 
-    # List of databases to search
-    databases = blastn_config.get('databases', [])
+    # Databases (name + db + output) are derived from all species.
+    try:
+        databases = species_config.blastn_short_databases(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if not databases:
         print("Error: No database configuration found", file=sys.stderr)

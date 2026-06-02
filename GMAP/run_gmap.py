@@ -29,6 +29,10 @@ import subprocess
 import yaml
 import argparse
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 
 def get_executable(config, name, fallback=None):
     """
@@ -99,7 +103,7 @@ def validate_config(config):
     gmap_config = config['gmap']
 
     # Check required parameters
-    required_params = ['query', 'databases']
+    required_params = ['query']
     for param in required_params:
         if param not in gmap_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
@@ -110,13 +114,15 @@ def validate_config(config):
         print(f"Error: Query file '{gmap_config['query']}' not found.", file=sys.stderr)
         sys.exit(1)
 
-    # Check that databases is a list
-    if not isinstance(gmap_config['databases'], list):
-        print("Error: 'databases' must be specified as a list.", file=sys.stderr)
+    # GMAP searches (name + gff3 output) are derived from the non-reference species.
+    try:
+        gmap_config['databases'] = species_config.gmap_databases(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if len(gmap_config['databases']) == 0:
-        print("Error: 'databases' must contain at least one database entry.", file=sys.stderr)
+        print("Error: no non-reference species to run GMAP for.", file=sys.stderr)
         sys.exit(1)
 
     # Get db_dir from gmap_build section
@@ -258,11 +264,8 @@ Config file example:
     gmap:
         query: "../BLASTP/Nohit_cds.fa"
         output_format: "gff3_gene"
-        databases:
-            - name: "SpeciesB"
-              output: "SpeciesB.gff3"
-            - name: "SpeciesC"
-              output: "SpeciesC.gff3"
+    # databases are derived from the non-reference species in the top-level
+    # 'species' list (name = prefix, output = {prefix}.gff3).
 
     gmap_build:
         db_dir: "../GMAP"

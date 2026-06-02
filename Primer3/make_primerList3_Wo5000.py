@@ -1,5 +1,18 @@
 import sys
+import os
 import re
+import yaml
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
+# Reference-species pair files are resolved from the species list in the
+# config (default: ../config.yaml), replacing the old hardcoded filename.
+config_path = sys.argv[1] if len(sys.argv) > 1 else "../config.yaml"
+with open(config_path, "r", encoding="utf-8") as _cf:
+    _config = yaml.safe_load(_cf)
+reference_pair_files = species_config.reference_pair_files(_config)
 
 hit_dict = {}
 with open(f"possiblePair.list") as IN:
@@ -18,23 +31,24 @@ with open(f"possiblePair.list") as IN:
 
 SUDE={}
 output={}
-with open(f"SpeciesA_possiblePair.tab") as IN:
-    for l in IN:
-        # chomp
-        l = l.strip()
-        if not l:
-            continue
-        # @dat = split("\t",$_);
-        dat = l.split("\t")
-        # $id = $dat[0];
-        seq_id = dat[0]
-        #print(seq_id)
-        if seq_id in SUDE:
-            SUDE[seq_id] = SUDE[seq_id] + 1
-        else:
-            SUDE[seq_id] = 1
+for reference_pair_file in reference_pair_files:
+    with open(reference_pair_file) as IN:
+        for l in IN:
+            # chomp
+            l = l.strip()
+            if not l:
+                continue
+            # @dat = split("\t",$_);
+            dat = l.split("\t")
+            # $id = $dat[0];
+            seq_id = dat[0]
+            #print(seq_id)
+            if seq_id in SUDE:
+                SUDE[seq_id] = SUDE[seq_id] + 1
+            else:
+                SUDE[seq_id] = 1
 
-        output[seq_id] = l
+            output[seq_id] = l
 
 #sys.exit(0)  # Exit immediately, no further processing
 
