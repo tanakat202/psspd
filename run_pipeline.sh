@@ -50,7 +50,9 @@ show_help() {
     echo "  --force              Re-run completed steps without confirmation"
     echo "  --skip-completed     Skip completed steps without confirmation"
     echo "  --check-only         Only check for scripts and external tools"
-    echo "  --clean-status       Clear status files and exit"
+    echo "  --clean-status       Clear status files in the current dir and exit"
+    echo "  --reset              Reset all stages: remove */.pipeline_status/*.complete"
+    echo "                       and *.version files recursively, then exit"
     echo "  --show-status        Show completion status of each step and exit"
     echo "  --help               Show this help"
     echo ""
@@ -62,7 +64,8 @@ show_help() {
     echo "  $0 config.yaml --skip-completed            # Auto-skip completed steps"
     echo "  $0 config.yaml --force                     # Re-run all steps"
     echo "  $0 config.yaml --check-only               # Environment check only"
-    echo "  $0 --clean-status                          # Clear status"
+    echo "  $0 --clean-status                          # Clear status (current dir only)"
+    echo "  $0 --reset                                 # Reset all stages' status + version files"
     echo ""
     echo "Available steps:"
     for i in "${!STEP_NAMES[@]}"; do
@@ -105,6 +108,38 @@ clean_status() {
     else
         echo "No status files exist"
     fi
+    exit 0
+}
+
+# Reset pipeline execution state across all stages.
+# Note: each stage keeps its own "$STATUS_DIR" under its own subdirectory
+# (Materials/, BLASTP/, GMAP/, Primer3/, ...), so a recursive search from the
+# script's base directory is required (the relative-path clean_status above
+# only affects the invocation directory).
+# Removes:
+#   - step completion markers: */${STATUS_DIR}/*.complete (directories are kept)
+#   - version marker files:    *.version
+reset_status() {
+    local base_dir
+    base_dir=$(dirname "$(readlink -f "$0")")
+
+    echo "Resetting pipeline status under: $base_dir"
+    echo "------------------------------------------------------------"
+
+    local complete_count version_count
+    complete_count=$(find "$base_dir" -type f -name "*.complete" \
+        -path "*/${STATUS_DIR}/*" -not -path "*/.git/*" | wc -l)
+    version_count=$(find "$base_dir" -type f -name "*.version" \
+        -not -path "*/.git/*" | wc -l)
+
+    find "$base_dir" -type f -name "*.complete" \
+        -path "*/${STATUS_DIR}/*" -not -path "*/.git/*" -print -delete
+    find "$base_dir" -type f -name "*.version" \
+        -not -path "*/.git/*" -print -delete
+
+    echo "------------------------------------------------------------"
+    echo "Removed ${complete_count} status marker(s) and ${version_count} version file(s)"
+    echo "Reset complete"
     exit 0
 }
 
@@ -205,6 +240,9 @@ while [ $# -gt 0 ]; do
             ;;
         --clean-status)
             clean_status
+            ;;
+        --reset)
+            reset_status
             ;;
         --show-status)
             show_status
