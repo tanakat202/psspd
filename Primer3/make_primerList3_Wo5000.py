@@ -18,7 +18,7 @@ with open(f"possiblePair.list") as IN:
 
 SUDE={}
 output={}
-with open(f"SpeciesA_possiblePair2000.tab") as IN:
+with open(f"SpeciesA_possiblePair.tab") as IN:
     for l in IN:
         # chomp
         l = l.strip()

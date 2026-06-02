@@ -1,11 +1,15 @@
 import sys
 import re
 
-if len(sys.argv) != 2:
-    print("Usage: python make_possiblePair5000.py <input_file>")
+if len(sys.argv) not in (2, 3):
+    print("Usage: python make_possiblePair.py <input_file> [max_distance]")
     sys.exit(1)
 input_file = sys.argv[1]+".out.tab"
-output_file = sys.argv[1]+"_possiblePair2000.tab"
+output_file = sys.argv[1]+"_possiblePair.tab"
+
+# Maximum allowed distance (bp) between primer pairs.
+# Passed as the optional second argument (from config); defaults to 5000.
+max_distance = int(sys.argv[2]) if len(sys.argv) == 3 else 5000
 
 
 def split_data(line):
@@ -96,11 +100,11 @@ def pair():
                     if not rdir in ldir:
                         if ldir == 'p':
                             dist = rre - ls + 1
-                            if dist < 5000 and -5000 < dist:
+                            if -max_distance < dist < max_distance:
                                 out_file.write(f"{bef}\t{lseq}\t{ls}\t{le}\t{ldir}\t{rs}\t{rre}\t{rdir}\t{dist}\n")
                         else:
                             dist = le - rs + 1
-                            if dist < 5000 and -5000 < dist:
+                            if -max_distance < dist < max_distance:
                                 out_file.write(f"{bef}\t{lseq}\t{ls}\t{le}\t{ldir}\t{rs}\t{rre}\t{rdir}\t{dist}\n")
 
 

@@ -245,6 +245,9 @@ blastn_short:
 # Hit region extraction and pair candidate creation settings
 # Usage: cd Primer3 && python3 run_extract_hit_regions.py ../config.yaml
 extract_hit_regions:
+  # Maximum allowed distance (bp) between primer pairs (default: 5000)
+  max_distance: 5000
+
   # List of species to process
   # prefix: BLASTN output file prefix (reads {prefix}.out)
   targets:
@@ -258,8 +261,8 @@ make_primer_list:
   # List of pair candidate files to include in possiblePair.list
   # SpeciesA is the reference species and is not included (Read separately by make_primerList3_Wo5000.py)
   pair_files:
-    - "SpeciesB_possiblePair2000.tab"
-    - "SpeciesC_possiblePair2000.tab"
+    - "SpeciesB_possiblePair.tab"
+    - "SpeciesC_possiblePair.tab"
 
   # Output path for possiblePair.list (optional)
   pair_list_file: "possiblePair.list"

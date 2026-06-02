@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to run extract_hit_regions.py and make_possiblePair5000.py
+Script to run extract_hit_regions.py and make_possiblePair.py
 
 Usage:
     python3 run_extract_hit_regions.py config.yaml
@@ -10,7 +10,7 @@ and runs Python scripts for each species.
 
 Processing:
 1. extract_hit_regions.py: Extract hit regions from BLASTN output
-2. make_possiblePair5000.py: Extract primer pair candidates
+2. make_possiblePair.py: Extract primer pair candidates
 """
 
 import subprocess
@@ -48,9 +48,9 @@ def get_executable(config, name, fallback=None):
     return name
 
 
-def run_python_script(python_exec: str, script: str, prefix: str) -> None:
+def run_python_script(python_exec: str, script: str, prefix: str, *extra_args: str) -> None:
     """Run a Python script"""
-    cmd = [python_exec, script, prefix]
+    cmd = [python_exec, script, prefix, *extra_args]
     print(f"  Command: {' '.join(cmd)}")
 
     result = subprocess.run(
@@ -71,7 +71,7 @@ def run_python_script(python_exec: str, script: str, prefix: str) -> None:
 
 
 def run_extract_hit_regions(config: dict) -> None:
-    """Run extract_hit_regions.py and make_possiblePair5000.py"""
+    """Run extract_hit_regions.py and make_possiblePair.py"""
     hit_config = config.get('extract_hit_regions', {})
 
     # Python executable path (executables section takes priority)
@@ -79,7 +79,10 @@ def run_extract_hit_regions(config: dict) -> None:
 
     # Script paths
     extract_script = hit_config.get('extract_script', 'extract_hit_regions.py')
-    pair_script = hit_config.get('pair_script', 'make_possiblePair5000.py')
+    pair_script = hit_config.get('pair_script', 'make_possiblePair.py')
+
+    # Maximum allowed distance (bp) between primer pairs (default: 5000)
+    max_distance = hit_config.get('max_distance', 5000)
 
     # List of species to process
     targets = hit_config.get('targets', [])
@@ -123,10 +126,10 @@ def run_extract_hit_regions(config: dict) -> None:
         run_python_script(python_exec, extract_script, prefix)
         print(f"     Output: {prefix}.out.tab")
 
-        # Run make_possiblePair5000.py
-        print(f"  2. Running make_possiblePair5000.py")
-        run_python_script(python_exec, pair_script, prefix)
-        print(f"     Output: {prefix}_possiblePair2000.tab")
+        # Run make_possiblePair.py
+        print(f"  2. Running make_possiblePair.py")
+        run_python_script(python_exec, pair_script, prefix, str(max_distance))
+        print(f"     Output: {prefix}_possiblePair.tab")
 
         print()
 
