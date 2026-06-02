@@ -10,10 +10,10 @@ integrates multiple hit list files, and extracts CDS sequences that had no hits.
 
 Required settings:
     make_complete_list:
-        hit_files: List of hit list files
         input_cds: Input CDS file (Nohit_cds.fa)
         output_list: Output list file
         output_cds: Output CDS file
+    # hit_files are derived from the non-reference species in 'species'.
 """
 
 import sys
@@ -21,6 +21,10 @@ import os
 import re
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
 
 def load_config(config_file):
@@ -62,15 +66,17 @@ def validate_config(config):
     complete_config = config['make_complete_list']
 
     # Check required parameters
-    required_params = ['hit_files', 'input_cds', 'output_list', 'output_cds']
+    required_params = ['input_cds', 'output_list', 'output_cds']
     for param in required_params:
         if param not in complete_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # Check that hit_files is a list
-    if not isinstance(complete_config['hit_files'], list):
-        print("Error: 'hit_files' must be specified as a list.", file=sys.stderr)
+    # Hit-list files are derived from the non-reference species.
+    try:
+        complete_config['hit_files'] = species_config.complete_list_hit_files(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Check input CDS file existence

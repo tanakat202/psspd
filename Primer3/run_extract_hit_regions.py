@@ -19,6 +19,10 @@ import os
 import shutil
 import yaml
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 
 def load_config(config_path: str) -> dict:
     """Load config file"""
@@ -84,8 +88,12 @@ def run_extract_hit_regions(config: dict) -> None:
     # Maximum allowed distance (bp) between primer pairs (default: 5000)
     max_distance = hit_config.get('max_distance', 5000)
 
-    # List of species to process
-    targets = hit_config.get('targets', [])
+    # Species to process (all species) are derived from the species list.
+    try:
+        targets = [{'prefix': p} for p in species_config.extract_hit_regions_targets(config)]
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if not targets:
         print("Error: No targets specified", file=sys.stderr)

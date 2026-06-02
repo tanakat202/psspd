@@ -5,6 +5,10 @@ import os
 import re
 import yaml
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 # Fixed directory for species input files (relative to Materials/)
 INPUT_DIR = "DL_data"
 
@@ -84,9 +88,10 @@ def process_species(input_file, prefix, codon_dict):
                         translation(seq, bef, output_aa, output_codons, codon_dict)
 
                     A = A + 1
-                    open_list.write(f"gene{A}\t{acc}\n")
-                    output_aa.write(f">{prefix}_gene{A}\n")
-                    output_codons.write(f">{prefix}_gene{A}\n")
+                    gene_id = f"{A:06d}"
+                    open_list.write(f"{gene_id}\t{acc}\n")
+                    output_aa.write(f">{prefix}_{gene_id}\n")
+                    output_codons.write(f">{prefix}_{gene_id}\n")
                     bef = acc
                     seq = ""
                 else:
@@ -111,18 +116,8 @@ def main():
 
         codon_file = config['codon_file']
 
-        # Process multiple species if species list exists, otherwise use legacy format
-        if 'species' in config:
-            species_list = config['species']
-        elif 'input_file' in config and 'prefix' in config:
-            # Backward compatibility: legacy format
-            species_list = [{
-                'input_file': config['input_file'],
-                'prefix': config['prefix']
-            }]
-        else:
-            print("Error: 'species' list or 'input_file'/'prefix' required in config.")
-            sys.exit(1)
+        # Prefixes (AA, AB, ...) and roles are derived from the 'species' list.
+        species_list = species_config.load_species(config)
 
     except FileNotFoundError:
         print(f"Error: Config file '{config_file}' not found.")
@@ -132,6 +127,9 @@ def main():
         sys.exit(1)
     except yaml.YAMLError as e:
         print(f"Error: Invalid YAML format in config file: {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Load codon table
@@ -153,7 +151,7 @@ def main():
     input_dir_abs = os.path.abspath(INPUT_DIR)
     for species in species_list:
         try:
-            input_file = resolve_input_file(species['input_file'])
+            input_file = resolve_input_file(species['cds'])
             prefix = species['prefix']
             process_species(input_file, prefix, codon_dict)
         except KeyError as e:

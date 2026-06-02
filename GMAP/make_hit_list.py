@@ -8,10 +8,8 @@ Usage:
 Reads parameters from the config file (YAML format)
 and extracts coverage/identity from GFF3 files to create hit lists.
 
-Required settings:
-    make_hit_list:
-        targets:
-            - prefix: GFF3 file prefix
+Targets (the non-reference species) are derived from the top-level
+'species' list; no make_hit_list-specific settings are required.
 """
 
 import sys
@@ -19,6 +17,10 @@ import os
 import re
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
 
 def load_config(config_file):
@@ -57,25 +59,20 @@ def validate_config(config):
         print("Error: 'make_hit_list' section not found in config file.", file=sys.stderr)
         sys.exit(1)
 
-    hit_config = config['make_hit_list']
+    hit_config = config.get('make_hit_list') or {}
 
-    if 'targets' not in hit_config:
-        print("Error: 'targets' not found in config file.", file=sys.stderr)
-        sys.exit(1)
-
-    if not isinstance(hit_config['targets'], list):
-        print("Error: 'targets' must be specified as a list.", file=sys.stderr)
+    # Targets (GFF3 prefixes) are derived from the non-reference species.
+    try:
+        hit_config['targets'] = [
+            {'prefix': p} for p in species_config.hit_list_targets(config)
+        ]
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if len(hit_config['targets']) == 0:
-        print("Error: 'targets' must contain at least one entry.", file=sys.stderr)
+        print("Error: no non-reference species to build hit lists for.", file=sys.stderr)
         sys.exit(1)
-
-    # Validate each target
-    for i, target in enumerate(hit_config['targets']):
-        if 'prefix' not in target:
-            print(f"Error: targets[{i}] is missing 'prefix'.", file=sys.stderr)
-            sys.exit(1)
 
     return hit_config
 
@@ -137,11 +134,8 @@ Examples:
     python3 make_hit_list.py config.yaml
     python3 make_hit_list.py ../config.yaml
 
-Config file example:
-    make_hit_list:
-        targets:
-            - prefix: "SpeciesB"
-            - prefix: "SpeciesC"
+targets (the non-reference species) are derived from the top-level
+'species' list, so make_hit_list needs no per-step config.
         """
     )
 

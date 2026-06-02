@@ -19,6 +19,10 @@ import os
 import shutil
 import yaml
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 
 def load_config(config_path: str) -> dict:
     """Load config file"""
@@ -48,9 +52,9 @@ def get_executable(config, name, fallback=None):
     return name
 
 
-def run_python_script(python_exec: str, script: str, capture_output: bool = True) -> str:
+def run_python_script(python_exec: str, script: str, *extra_args: str) -> str:
     """Run a Python script"""
-    cmd = [python_exec, script]
+    cmd = [python_exec, script, *extra_args]
     print(f"  Command: {' '.join(cmd)}")
 
     result = subprocess.run(
@@ -72,17 +76,21 @@ def run_python_script(python_exec: str, script: str, capture_output: bool = True
     return result.stdout
 
 
-def run_make_primer_list(config: dict) -> None:
+def run_make_primer_list(config: dict, config_path: str) -> None:
     """Run primer list creation process"""
     primer_config = config.get('make_primer_list', {})
 
     # Python executable path (executables section takes priority)
     python_exec = get_executable(config, 'python3')
 
-    # List of files to include in possiblePair.list
-    pair_files = primer_config.get('pair_files', [])
+    # Pair-candidate files (non-reference species) are derived from the species list.
+    try:
+        pair_files = species_config.primer_pair_files(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     if not pair_files:
-        print("Error: pair_files not specified", file=sys.stderr)
+        print("Error: no non-reference species to build the primer list from", file=sys.stderr)
         sys.exit(1)
 
     # possiblePair.list path
@@ -128,9 +136,10 @@ def run_make_primer_list(config: dict) -> None:
         print(f"Error: Script not found: {count_script}", file=sys.stderr)
         sys.exit(1)
 
-    # 2. Run make_primerList3_Wo5000.py
+    # 2. Run make_primerList3_Wo5000.py (pass config so it can resolve the
+    #    reference-species pair files from the species list)
     print("2. Running make_primerList3_Wo5000.py")
-    run_python_script(python_exec, make_primer_script)
+    run_python_script(python_exec, make_primer_script, config_path)
     print("   Output: unique_primer3.tab")
     print()
 
@@ -154,7 +163,7 @@ def main():
         sys.exit(1)
 
     config = load_config(config_path)
-    run_make_primer_list(config)
+    run_make_primer_list(config, config_path)
 
 
 if __name__ == '__main__':

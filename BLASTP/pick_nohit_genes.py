@@ -15,6 +15,10 @@ import re
 import yaml
 import argparse
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
+
 
 def load_config(config_file):
     """
@@ -46,83 +50,72 @@ def validate_config(config):
         config (dict): Configuration contents
 
     Returns:
-        str: Target species name
+        list: Reference species prefixes (the targets to analyze)
     """
-    if 'no_hit_analysis' not in config:
-        print("Error: 'no_hit_analysis' section not found in config file.", file=sys.stderr)
+    try:
+        return species_config.reference_prefixes(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    analysis_config = config['no_hit_analysis']
 
-    if 'target' not in analysis_config:
-        print("Error: Required parameter 'target' not found in config file.", file=sys.stderr)
-        sys.exit(1)
+def _analyze_one(target, out_file):
+    """Write the no-hit genes of a single target species to out_file."""
+    blast_input = open("blastp.out", "r", encoding='utf-8')
+    a = 0
+    large_a = 0
+    before_seq = ""
+    seq_id = None
+    while True:
+        line = next(blast_input, "")
+        if not line:  # End of file reached
+            break
 
-    target = analysis_config['target']
+        parts = line.strip().split("\t")
 
-    # Validate target species name
-    valid_targets = ['SpeciesA', 'SpeciesB', 'SpeciesC']
-    if target not in valid_targets:
-        print(f"Error: Invalid target species name '{target}'. "
-              f"Valid values: {', '.join(valid_targets)}", file=sys.stderr)
-        sys.exit(1)
+        if len(parts) >= 2 and target in parts[0]:
+            seq_id = parts[0]
 
-    return target
+            if (before_seq and re.search(r'\w', before_seq) and
+                    seq_id not in before_seq):
+                if large_a == 0:
+                    print(f"{before_seq}", file=out_file)
+                    a += 1
+
+                large_a = 0
+            if target not in parts[1]:
+                large_a = 1
+        before_seq = seq_id
+
+    if large_a == 0 and before_seq:
+        print(f"{before_seq}", file=out_file)
+        a += 1
+
+    blast_input.close()
+    return a
 
 
-def analyze_nohits(target):
+def analyze_nohits(targets):
     """
-    Extract genes with no BLASTP hits
+    Extract genes with no BLASTP hits for each reference (target) species.
 
     Args:
-        target (str): Target species name
+        targets (list): Reference species prefixes
     """
     # Set up BLAST result file open blastp.out
     if not os.path.exists("blastp.out"):
         print("Error: blastp.out file does not exist.")
         return
 
-    print(f"Target species: {target}")
-    print("Analyzing BLASTP results...")
-
-    # Open output file for writing in text mode
+    total = 0
+    # Open output file for writing in text mode (combined across targets)
     with open("blastp_nohits.tab", "w+", encoding='utf-8') as out_file:
-        # Read from blastp.out file
-        blast_input = open("blastp.out", "r", encoding='utf-8')
-        a = 0
-        large_a = 0
+        for target in targets:
+            print(f"Target species: {target}")
+            print("Analyzing BLASTP results...")
+            total += _analyze_one(target, out_file)
 
-        before_seq = ""
-        seq_id = None
-        while True:
-
-            line = next(blast_input, "")
-            if not line:  # End of file reached
-                break
-
-            parts = line.strip().split("\t")
-
-            if len(parts) >= 2 and target in parts[0]:
-                seq_id = parts[0]
-
-                if (before_seq and re.search(r'\w', before_seq) and
-                        seq_id not in before_seq):
-                    if large_a == 0:
-                        print(f"{before_seq}", file=out_file)
-                        a += 1
-
-                    large_a = 0
-                if target not in parts[1]:
-                    large_a = 1
-            before_seq = seq_id
-
-        if large_a == 0 and before_seq:
-            print(f"{before_seq}", file=out_file)
-            a += 1
-
-        blast_input.close()
-
-    print(f"Number of genes with no hits: {a}")
+    print(f"Number of genes with no hits: {total}")
     print("Created result file 'blastp_nohits.tab'.")
 
 
@@ -136,9 +129,8 @@ Examples:
     python3 pick_nohit_genes.py config.yaml
     python3 pick_nohit_genes.py ../config.yaml
 
-Config file example:
-    no_hit_analysis:
-        target: "SpeciesB"
+The target species are the reference species, derived from the top-level
+'species' list and 'reference_count' (no per-step config is needed).
         """
     )
 
@@ -152,11 +144,11 @@ Config file example:
     # Load config file
     config = load_config(args.config_file)
 
-    # Validate configuration
-    target = validate_config(config)
+    # Validate configuration (reference species prefixes)
+    targets = validate_config(config)
 
     # Analyze genes with no hits
-    analyze_nohits(target)
+    analyze_nohits(targets)
 
 
 if __name__ == "__main__":

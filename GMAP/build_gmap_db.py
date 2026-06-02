@@ -13,9 +13,7 @@ Required settings:
         executable: gmap_build executable path (optional)
         perl_interpreter: Perl interpreter path (optional)
         db_dir: Directory to create the database
-        databases:
-            - name: Database name (prefix)
-              genome: Genome FASTA file path
+    # databases are derived from the non-reference species in 'species'.
 """
 
 import sys
@@ -23,6 +21,10 @@ import os
 import subprocess
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
 
 def get_executable(config, name, fallback=None):
@@ -94,19 +96,21 @@ def validate_config(config):
     gmap_config = config['gmap_build']
 
     # Check required parameters
-    required_params = ['db_dir', 'databases']
+    required_params = ['db_dir']
     for param in required_params:
         if param not in gmap_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    # Check that databases is a list
-    if not isinstance(gmap_config['databases'], list):
-        print("Error: 'databases' must be specified as a list.", file=sys.stderr)
+    # GMAP databases (name + genome) are derived from the non-reference species.
+    try:
+        gmap_config['databases'] = species_config.gmap_build_databases(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if len(gmap_config['databases']) == 0:
-        print("Error: 'databases' must contain at least one database entry.", file=sys.stderr)
+        print("Error: no non-reference species to build GMAP databases for.", file=sys.stderr)
         sys.exit(1)
 
     # Validate each database entry
@@ -259,11 +263,8 @@ Config file example:
     gmap_build:
         executable: "/path/to/gmap_build"  # Optional
         db_dir: "./"
-        databases:
-            - name: "SpeciesB"
-              genome: "../Materials/DL_data/genome_B.fna"
-            - name: "SpeciesC"
-              genome: "../Materials/DL_data/genome_C.fna"
+    # databases are derived from the non-reference species in the top-level
+    # 'species' list (name = prefix, genome = ../Materials/DL_data/{genome}).
         """
     )
 

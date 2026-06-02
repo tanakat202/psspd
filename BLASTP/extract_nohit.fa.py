@@ -10,16 +10,20 @@ and extracts CDS sequences from the no-hit gene list.
 
 Required settings:
     extract_nohit:
-        target: Target species name
         nohits_file: No-hit gene list file
-        input_cds_file: Input CDS file
+        input_cds_file: Input CDS file template ({target} per reference species)
         output_file: Output file
+    # The reference species are derived from the top-level 'species' list.
 """
 
 import os
 import sys
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
 
 def load_config(config_file):
@@ -61,18 +65,20 @@ def validate_config(config):
     extract_config = config['extract_nohit']
 
     # Check required parameters
-    required_params = ['target', 'nohits_file', 'input_cds_file',
-                       'output_file']
+    required_params = ['nohits_file', 'input_cds_file', 'output_file']
     for param in required_params:
         if param not in extract_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
             sys.exit(1)
 
-    target = extract_config['target']
-
-    # Expand paths ({target} substitution)
-    input_template = extract_config['input_cds_file']
-    extract_config['input_cds_file'] = input_template.format(target=target)
+    # Reference species are derived from the species list. The
+    # 'input_cds_file' value is kept as a template and expanded per species
+    # (its '{target}' placeholder is substituted with each prefix).
+    try:
+        extract_config['targets'] = species_config.reference_prefixes(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     return extract_config
 
@@ -116,42 +122,45 @@ def extract_sequences(extract_config, nohits_dict):
         extract_config (dict): extract_nohit settings
         nohits_dict (dict): Dictionary of no-hit gene IDs
     """
-    input_file = extract_config['input_cds_file']
+    template = extract_config['input_cds_file']
     output_file = extract_config['output_file']
-    target = extract_config['target']
+    targets = extract_config['targets']
 
-    # Check input file existence
-    if not os.path.exists(input_file):
-        print(f"Error: Input CDS file '{input_file}' not found.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Target species: {target}")
-    print(f"Input file: {input_file}")
     print(f"Output file: {output_file}")
     print("Extracting CDS sequences...")
 
     extracted_count = 0
-    found_sequences = False
 
     try:
         with open(output_file, "w", encoding='utf-8') as out_file:
-            with open(input_file, "r", encoding='utf-8') as in_file:
-                for line in in_file:
-                    line = line.strip()
+            for target in targets:
+                # Expand the {target} placeholder for this reference species.
+                input_file = template.format(target=target)
+                if not os.path.exists(input_file):
+                    print(f"Error: Input CDS file '{input_file}' not found.", file=sys.stderr)
+                    sys.exit(1)
 
-                    if line.startswith(">"):  # Sequence header line
-                        seq_id = line.split(' ', 1)[0][1:]  # Remove '>' and take up to first space
+                print(f"Target species: {target}")
+                print(f"Input file: {input_file}")
 
-                        if seq_id in nohits_dict:
+                found_sequences = False
+                with open(input_file, "r", encoding='utf-8') as in_file:
+                    for line in in_file:
+                        line = line.strip()
+
+                        if line.startswith(">"):  # Sequence header line
+                            seq_id = line.split(' ', 1)[0][1:]  # Remove '>' and take up to first space
+
+                            if seq_id in nohits_dict:
+                                out_file.write(f"{line}\n")
+                                found_sequences = True
+                                extracted_count += 1
+                            else:
+                                found_sequences = False
+
+                        elif found_sequences:
+                            # Output sequence line if current sequence is a target
                             out_file.write(f"{line}\n")
-                            found_sequences = True
-                            extracted_count += 1
-                        else:
-                            found_sequences = False
-
-                    elif found_sequences:
-                        # Output sequence line if current sequence is a target
-                        out_file.write(f"{line}\n")
 
         print(f"Number of extracted sequences: {extracted_count}")
 
@@ -188,10 +197,10 @@ Examples:
 
 Config file example:
     extract_nohit:
-        target: "SpeciesA"
         nohits_file: "blastp_nohits.tab"
         input_cds_file: "../Materials/{target}/{target}.cds.fasta"
         output_file: "Nohit_cds.fa"
+    # The reference species ({target}) come from the top-level 'species' list.
         """
     )
 

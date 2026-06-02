@@ -17,10 +17,15 @@ import re
 import sys
 import yaml
 
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import species_config
 
-# First column of unique_primer3.tab is '{prefix}_gene{N}_{primer_idx}'.
-# We strip the trailing '_<idx>' to recover the gene key '{prefix}_gene{N}'.
-GENE_ID_PATTERN = re.compile(r'^(.+_gene\d+)_\d+$')
+
+# First column of unique_primer3.tab is '{prefix}_{NNNNNN}_{primer_idx}',
+# where {NNNNNN} is the 6-digit gene number. We strip the trailing '_<idx>'
+# to recover the gene key '{prefix}_{NNNNNN}'.
+GENE_ID_PATTERN = re.compile(r'^(.+_\d{6})_\d+$')
 
 
 def load_config(config_path):
@@ -72,7 +77,7 @@ def annotate(input_path, output_path, mapping):
             if not m:
                 print(
                     f"Error: Unexpected ID format at {input_path}:{lineno}: "
-                    f"'{first_col}' (expected '<prefix>_gene<N>_<idx>')",
+                    f"'{first_col}' (expected '<prefix>_<NNNNNN>_<idx>')",
                     file=sys.stderr,
                 )
                 sys.exit(1)
@@ -105,9 +110,10 @@ def main():
     output_file = add_config.get('output_file', 'unique_primer3_with_original_id.tab')
     materials_dir = add_config.get('materials_dir', '../Materials')
 
-    species_list = config.get('species')
-    if not species_list:
-        print("Error: 'species' section is required in the config.", file=sys.stderr)
+    try:
+        species_list = species_config.load_species(config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if not os.path.exists(input_file):
