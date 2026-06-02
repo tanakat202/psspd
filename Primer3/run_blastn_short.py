@@ -104,7 +104,8 @@ def run_blastn_short(config: dict) -> None:
             '-query', query,
             '-out', output,
             '-outfmt', str(outfmt),
-            '-num_threads', str(num_threads)
+            '-num_threads', str(num_threads),
+            '-evalue', '10'
         ]
         print(f"  Command: {' '.join(cmd)}")
 
