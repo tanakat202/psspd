@@ -195,6 +195,10 @@ blastn_short:
   # Number of threads (default: 4)
   num_threads: 4
 
+  # E-value threshold (default: "10").
+  # Quote the value so both "10" and "1E-5" are accepted.
+  evalue: "10"
+
 # Hit region extraction and pair candidate creation settings
 # Usage: cd Primer3 && python3 run_extract_hit_regions.py ../config.yaml
 # targets (all species) are derived from the species list.
