@@ -68,12 +68,9 @@ codon_file: "Codon.txt"
 # - the database type is fixed (prot).
 
 # BLASTP settings
-# database and query are fixed (all_aa.fasta, the same all-vs-all FASTA);
-# they are not configurable.
+# database/query (all_aa.fasta, the same all-vs-all FASTA) and output
+# (blastp.out) are fixed; they are not configurable.
 blastp:
-  # Output file path (required)
-  output: "../BLASTP/blastp.out"
-
   # E-value threshold (default: 1E-5)
   evalue: "1E-5"
 

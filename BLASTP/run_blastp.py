@@ -10,13 +10,12 @@ and runs BLASTP.
 
 Settings:
     blastp:
-        output: Output file path
         evalue: E-value threshold (optional, default: 1E-5)
         outfmt: Output format (optional, default: 6)
         num_threads: Number of threads (optional, default: 4)
         executable: BLASTP executable path (optional)
-    # database and query are fixed (defaults.BLASTP_ALL_AA_FASTA, the same
-    # all-vs-all FASTA); they are no longer configurable.
+    # database, query and output are fixed (see defaults.py); database and
+    # query are the same all-vs-all FASTA. None of them are configurable.
 """
 
 import sys
@@ -93,23 +92,15 @@ def validate_blastp_config(config):
     Returns:
         dict: BLASTP settings
     """
-    if 'blastp' not in config:
-        print("Error: 'blastp' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'blastp' section only has optional tuning knobs (evalue/outfmt/
+    # num_threads); it may be absent or empty.
+    blastp_config = config.get('blastp') or {}
 
-    blastp_config = config['blastp']
-
-    # Database and query are the same fixed all-vs-all FASTA (see defaults.py),
-    # not configurable.
+    # Database, query and output are fixed defaults (see defaults.py),
+    # not configurable. Database and query are the same all-vs-all FASTA.
     blastp_config['database'] = defaults.BLASTP_ALL_AA_FASTA
     blastp_config['query'] = defaults.BLASTP_ALL_AA_FASTA
-
-    # Check required parameters
-    required_params = ['output']
-    for param in required_params:
-        if param not in blastp_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    blastp_config['output'] = defaults.BLASTP_OUTPUT
 
     # Check database file existence
     if not os.path.exists(blastp_config['database']):
@@ -247,12 +238,12 @@ Examples:
 
 Config file example:
     blastp:
-        output: "BLASTP/blastp.out"
         evalue: "1E-5"
         outfmt: 6
         num_threads: 4
         executable: "/path/to/blastp"  # Optional
-    # database and query are fixed (all_aa.fasta); not configurable.
+    # database, query (all_aa.fasta) and output (blastp.out) are fixed;
+    # not configurable.
         """
     )
 

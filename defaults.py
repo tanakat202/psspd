@@ -13,3 +13,7 @@ BLASTP_ALL_AA_FASTA = "all_aa.fasta"
 
 # makeblastdb database type for the BLASTP database (protein).
 BLASTP_DBTYPE = "prot"
+
+# BLASTP tabular output file. Written in the BLASTP working directory and read
+# back by the downstream no-hit extraction step.
+BLASTP_OUTPUT = "blastp.out"
