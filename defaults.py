@@ -17,3 +17,11 @@ BLASTP_DBTYPE = "prot"
 # BLASTP tabular output file. Written in the BLASTP working directory and read
 # back by the downstream no-hit extraction step.
 BLASTP_OUTPUT = "blastp.out"
+
+# GMAP database directory (gmap_build/gmap -D option), relative to the GMAP
+# working directory.
+GMAP_DB_DIR = "GMAP"
+
+# GMAP query: the no-hit CDS FASTA produced by the BLASTP no-hit extraction
+# step, relative to the GMAP working directory.
+GMAP_QUERY = "../BLASTP/Nohit_cds.fa"

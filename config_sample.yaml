@@ -97,19 +97,15 @@ extract_nohit:
   output_file: "../BLASTP/Nohit_cds.fa"
 
 # GMAP database build settings
-# databases (one per non-reference species) are derived from the species list.
-gmap_build:
-  # Directory to create the database (required)
-  # Corresponds to the -D option
-  db_dir: "GMAP"
+# This step has no configurable settings:
+# - databases (one per non-reference species) are derived from the species list.
+# - the database directory is fixed (GMAP).
 
 # GMAP execution settings
 # Usage: cd GMAP && python3 run_gmap.py ../config.yaml
 # databases (one per non-reference species) are derived from the species list.
+# The query (../BLASTP/Nohit_cds.fa) and database directory (GMAP) are fixed.
 gmap:
-  # Query file (CDS sequences with no BLASTP hits)
-  query: "../BLASTP/Nohit_cds.fa"
-
   # Output format (default: gff3_gene)
   # Other options: gff3_match_cdna, gff3_match_est, coords, align, etc.
   output_format: "gff3_gene"
