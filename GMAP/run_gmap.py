@@ -8,16 +8,12 @@ Usage:
 Reads parameters from the config file (YAML format)
 and runs GMAP to generate GFF3 files.
 
-Required settings:
+Settings:
     gmap:
-        query: Query FASTA file (Nohit_cds.fa etc.)
         output_format: Output format (gff3_gene etc.)
-        databases:
-            - name: Database name (prefix)
-              output: Output GFF3 file name
-
-    gmap_build:
-        db_dir: GMAP database directory
+    # query is fixed (defaults.GMAP_QUERY, the BLASTP no-hit CDS FASTA) and the
+    # database directory is fixed (defaults.GMAP_DB_DIR); neither is configurable.
+    # databases (name + GFF3 output) are derived from the non-reference species.
 
     executables:
         gmap: gmap executable path (optional)
@@ -29,9 +25,10 @@ import subprocess
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -96,18 +93,12 @@ def validate_config(config):
     Returns:
         dict: GMAP execution settings
     """
-    if 'gmap' not in config:
-        print("Error: 'gmap' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'gmap' section only has the optional output_format knob;
+    # it may be absent or empty.
+    gmap_config = config.get('gmap') or {}
 
-    gmap_config = config['gmap']
-
-    # Check required parameters
-    required_params = ['query']
-    for param in required_params:
-        if param not in gmap_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Query is a fixed default (see defaults.py), not configurable.
+    gmap_config['query'] = defaults.GMAP_QUERY
 
     # Check query file existence
     if not os.path.exists(gmap_config['query']):
@@ -125,12 +116,8 @@ def validate_config(config):
         print("Error: no non-reference species to run GMAP for.", file=sys.stderr)
         sys.exit(1)
 
-    # Get db_dir from gmap_build section
-    if 'gmap_build' not in config or 'db_dir' not in config['gmap_build']:
-        print("Error: 'gmap_build.db_dir' not found in config file.", file=sys.stderr)
-        sys.exit(1)
-
-    db_dir = config['gmap_build']['db_dir']
+    # Database directory is a fixed default (see defaults.py).
+    db_dir = defaults.GMAP_DB_DIR
 
     # Validate each database entry
     for i, db in enumerate(gmap_config['databases']):
@@ -166,8 +153,8 @@ def build_gmap_command(config, gmap_config, db_entry):
     # gmap executable path
     executable = get_executable(config, 'gmap')
 
-    # Database directory
-    db_dir = config['gmap_build']['db_dir']
+    # Database directory (fixed, see defaults.py)
+    db_dir = defaults.GMAP_DB_DIR
 
     # Output format (default: gff3_gene)
     output_format = gmap_config.get('output_format', 'gff3_gene')
@@ -262,13 +249,11 @@ Examples:
 
 Config file example:
     gmap:
-        query: "../BLASTP/Nohit_cds.fa"
         output_format: "gff3_gene"
+    # query (../BLASTP/Nohit_cds.fa) and the GMAP database directory (GMAP) are
+    # fixed; not configurable.
     # databases are derived from the non-reference species in the top-level
     # 'species' list (name = prefix, output = {prefix}.gff3).
-
-    gmap_build:
-        db_dir: "../GMAP"
         """
     )
 

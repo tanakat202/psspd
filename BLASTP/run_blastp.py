@@ -8,15 +8,14 @@ Usage:
 Reads BLASTP parameters from the config file (YAML format)
 and runs BLASTP.
 
-Required settings:
+Settings:
     blastp:
-        database: Database file path
-        query: Query file path
-        output: Output file path
         evalue: E-value threshold (optional, default: 1E-5)
         outfmt: Output format (optional, default: 6)
         num_threads: Number of threads (optional, default: 4)
         executable: BLASTP executable path (optional)
+    # database, query and output are fixed (see defaults.py); database and
+    # query are the same all-vs-all FASTA. None of them are configurable.
 """
 
 import sys
@@ -25,6 +24,10 @@ import subprocess
 import yaml
 import argparse
 from pathlib import Path
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -89,18 +92,15 @@ def validate_blastp_config(config):
     Returns:
         dict: BLASTP settings
     """
-    if 'blastp' not in config:
-        print("Error: 'blastp' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'blastp' section only has optional tuning knobs (evalue/outfmt/
+    # num_threads); it may be absent or empty.
+    blastp_config = config.get('blastp') or {}
 
-    blastp_config = config['blastp']
-
-    # Check required parameters
-    required_params = ['database', 'query', 'output']
-    for param in required_params:
-        if param not in blastp_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Database, query and output are fixed defaults (see defaults.py),
+    # not configurable. Database and query are the same all-vs-all FASTA.
+    blastp_config['database'] = defaults.BLASTP_ALL_AA_FASTA
+    blastp_config['query'] = defaults.BLASTP_ALL_AA_FASTA
+    blastp_config['output'] = defaults.BLASTP_OUTPUT
 
     # Check database file existence
     if not os.path.exists(blastp_config['database']):
@@ -238,13 +238,12 @@ Examples:
 
 Config file example:
     blastp:
-        database: "BLASTP/all_aa.fasta"
-        query: "BLASTP/all_aa.fasta"
-        output: "BLASTP/blastp.out"
         evalue: "1E-5"
         outfmt: 6
         num_threads: 4
         executable: "/path/to/blastp"  # Optional
+    # database, query (all_aa.fasta) and output (blastp.out) are fixed;
+    # not configurable.
         """
     )
 

@@ -8,12 +8,12 @@ Usage:
 Reads parameters from the config file (YAML format)
 and builds GMAP databases.
 
-Required settings:
-    gmap_build:
-        executable: gmap_build executable path (optional)
-        perl_interpreter: Perl interpreter path (optional)
-        db_dir: Directory to create the database
+Settings:
+    # The gmap_build section has no configurable settings:
+    # the database directory is fixed (defaults.GMAP_DB_DIR).
     # databases are derived from the non-reference species in 'species'.
+    # The gmap_build executable / perl interpreter may be set under the
+    # top-level 'executables' section.
 """
 
 import sys
@@ -22,9 +22,10 @@ import subprocess
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -89,18 +90,12 @@ def validate_config(config):
     Returns:
         dict: GMAP build settings
     """
-    if 'gmap_build' not in config:
-        print("Error: 'gmap_build' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'gmap_build' section has no configurable settings anymore;
+    # it may be absent or empty.
+    gmap_config = config.get('gmap_build') or {}
 
-    gmap_config = config['gmap_build']
-
-    # Check required parameters
-    required_params = ['db_dir']
-    for param in required_params:
-        if param not in gmap_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Database directory is a fixed default (see defaults.py), not configurable.
+    gmap_config['db_dir'] = defaults.GMAP_DB_DIR
 
     # GMAP databases (name + genome) are derived from the non-reference species.
     try:
@@ -259,10 +254,9 @@ Examples:
     python3 build_gmap_db.py config.yaml
     python3 build_gmap_db.py ../config.yaml
 
-Config file example:
-    gmap_build:
-        executable: "/path/to/gmap_build"  # Optional
-        db_dir: "./"
+The gmap_build section has no configurable settings.
+    # The database directory is fixed (GMAP). The gmap_build executable may be
+    # set under the top-level 'executables' section.
     # databases are derived from the non-reference species in the top-level
     # 'species' list (name = prefix, genome = ../Materials/DL_data/{genome}).
         """

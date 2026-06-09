@@ -8,11 +8,10 @@ Usage:
 Reads parameters from the config file (YAML format)
 and performs FASTA file concatenation and BLASTP database construction.
 
-Required settings:
-    build_blastp_db:
-        output_fasta: Concatenated FASTA file path
-        makeblastdb_executable: makeblastdb executable path (optional)
-        dbtype: Database type (default: prot)
+This step has no configurable settings:
+    # The concatenated FASTA file name is fixed (defaults.BLASTP_ALL_AA_FASTA)
+    # and the database type is fixed (defaults.BLASTP_DBTYPE); neither is
+    # configurable.
     # input_files are derived from the top-level 'species' list.
 """
 
@@ -23,9 +22,10 @@ import shutil
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -90,18 +90,14 @@ def validate_config(config):
     Returns:
         dict: Database build settings
     """
-    if 'build_blastp_db' not in config:
-        print("Error: 'build_blastp_db' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'build_blastp_db' section has no configurable settings anymore;
+    # it may be absent or empty.
+    db_config = config.get('build_blastp_db') or {}
 
-    db_config = config['build_blastp_db']
-
-    # Check required parameters
-    required_params = ['output_fasta']
-    for param in required_params:
-        if param not in db_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Concatenated FASTA path and database type are fixed defaults
+    # (see defaults.py), not configurable.
+    db_config['output_fasta'] = defaults.BLASTP_ALL_AA_FASTA
+    db_config['dbtype'] = defaults.BLASTP_DBTYPE
 
     # Input FASTA files are derived from the species list (all species).
     try:
@@ -191,8 +187,8 @@ def build_makeblastdb_command(config, db_config):
     # makeblastdb executable path (executables section takes priority)
     executable = get_executable(config, 'makeblastdb')
 
-    # Database type (default: prot)
-    dbtype = db_config.get('dbtype', 'prot')
+    # Database type (fixed: prot)
+    dbtype = db_config['dbtype']
 
     # Build basic command
     cmd = [
@@ -215,7 +211,7 @@ def run_makeblastdb(cmd, db_config):
     print("Building BLASTP database...")
     print(f"Command: {' '.join(cmd)}")
     print(f"Input file: {db_config['output_fasta']}")
-    print(f"Database type: {db_config.get('dbtype', 'prot')}")
+    print(f"Database type: {db_config['dbtype']}")
     print("-" * 50)
 
     try:
@@ -289,10 +285,9 @@ Examples:
     python3 build_blastp_db.py config.yaml
     python3 build_blastp_db.py ../config.yaml
 
-Config file example:
-    build_blastp_db:
-        output_fasta: "all_aa.fasta"
-        dbtype: "prot"  # Optional (default: prot)
+This step has no configurable settings.
+    # The concatenated FASTA file name (all_aa.fasta) and the database type
+    # (prot) are fixed.
     # input_files are derived from the top-level 'species' list
     # (one ../Materials/{prefix}/{prefix}.aa.fasta per species).
         """

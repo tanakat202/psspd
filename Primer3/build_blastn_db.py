@@ -5,8 +5,10 @@ Script to build BLASTN databases
 Usage:
     python3 build_blastn_db.py config.yaml
 
-Reads settings from the build_blastn_db section of the config file
-and runs makeblastdb to build BLASTN databases.
+Runs makeblastdb to build per-species BLASTN databases. This step has no
+configurable settings: the database type is fixed (defaults.BLASTN_DB_DBTYPE)
+and the databases are derived from the top-level 'species' list. The
+makeblastdb executable may be set under the top-level 'executables' section.
 """
 
 import subprocess
@@ -15,9 +17,10 @@ import os
 import shutil
 import yaml
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def load_config(config_path: str) -> dict:
@@ -50,13 +53,11 @@ def get_executable(config, name, fallback=None):
 
 def build_blastn_db(config: dict) -> None:
     """Build BLASTN databases"""
-    db_config = config.get('build_blastn_db', {})
-
     # makeblastdb executable path (executables section takes priority)
     executable = get_executable(config, 'makeblastdb')
 
-    # Database type (default: nucl)
-    dbtype = db_config.get('dbtype', 'nucl')
+    # Database type is a fixed default (see defaults.py), not configurable.
+    dbtype = defaults.BLASTN_DB_DBTYPE
 
     # Databases (name + genome input + output) are derived from all species.
     try:

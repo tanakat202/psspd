@@ -62,26 +62,15 @@ species:
 codon_file: "Codon.txt"
 
 # BLASTP database build settings
-# input_files are derived from the species list (all species' .aa.fasta).
-build_blastp_db:
-  # Concatenated FASTA file path (required)
-  output_fasta: "../BLASTP/all_aa.fasta"
-
-  # Database type (default: prot)
-  # prot: Protein database, nucl: Nucleotide database
-  dbtype: "prot"
+# This step has no configurable settings:
+# - input_files are derived from the species list (all species' .aa.fasta).
+# - the concatenated FASTA file name is fixed (all_aa.fasta).
+# - the database type is fixed (prot).
 
 # BLASTP settings
+# database/query (all_aa.fasta, the same all-vs-all FASTA) and output
+# (blastp.out) are fixed; they are not configurable.
 blastp:
-  # BLASTP database file path (required)
-  database: "../BLASTP/all_aa.fasta"
-
-  # Query file path (required)
-  query: "../BLASTP/all_aa.fasta"
-
-  # Output file path (required)
-  output: "../BLASTP/blastp.out"
-
   # E-value threshold (default: 1E-5)
   evalue: "1E-5"
 
@@ -108,19 +97,15 @@ extract_nohit:
   output_file: "../BLASTP/Nohit_cds.fa"
 
 # GMAP database build settings
-# databases (one per non-reference species) are derived from the species list.
-gmap_build:
-  # Directory to create the database (required)
-  # Corresponds to the -D option
-  db_dir: "GMAP"
+# This step has no configurable settings:
+# - databases (one per non-reference species) are derived from the species list.
+# - the database directory is fixed (GMAP).
 
 # GMAP execution settings
 # Usage: cd GMAP && python3 run_gmap.py ../config.yaml
 # databases (one per non-reference species) are derived from the species list.
+# The query (../BLASTP/Nohit_cds.fa) and database directory (GMAP) are fixed.
 gmap:
-  # Query file (CDS sequences with no BLASTP hits)
-  query: "../BLASTP/Nohit_cds.fa"
-
   # Output format (default: gff3_gene)
   # Other options: gff3_match_cdna, gff3_match_est, coords, align, etc.
   output_format: "gff3_gene"
@@ -130,25 +115,14 @@ gmap:
 # per-species setting is needed here.
 
 # make_complete_list.py settings
-# hit_files (non-reference species) are derived from the species list.
-make_complete_list:
-  # Input CDS file (required)
-  # CDS sequences with no BLASTP hits
-  input_cds: "../BLASTP/Nohit_cds.fa"
-
-  # Output file (required)
-  output_list: "../GMAP/Target.list"
-  output_cds: "../GMAP/Target_cds.fa"
+# This step has no configurable settings:
+# - hit_files (non-reference species) are derived from the species list.
+# - input_cds (../BLASTP/Nohit_cds.fa) and the Target list / CDS outputs are fixed.
 
 # Primer3 input file generation settings
 # Usage: cd Primer3 && python3 make_primer3_input.py ../config.yaml
+# input_cds (../GMAP/Target_cds.fa) and output_file (primer3_input.list) are fixed.
 make_primer3_input:
-  # Input CDS file (Target_cds.fa)
-  input_cds: "../GMAP/Target_cds.fa"
-
-  # Output file (primer3_input.list)
-  output_file: "../Primer3/primer3_input.list"
-
   # Primer3 parameters (optional, with default values)
   primer_opt_size: 20
   primer_min_size: 18
@@ -157,38 +131,25 @@ make_primer3_input:
 
 # Primer3 settings
 # Usage: cd Primer3 && python3 run_primer3.py ../config.yaml
-primer3:
-  # Input file path (required)
-  # Input file for primer3_core
-  input_file: "primer3_input.list"
-
-  # Output file path (required)
-  # Output destination of primer3_core
-  output_file: "primer3_output.list"
+# This step has no configurable settings: the input (primer3_input.list) and
+# output (primer3_output.list) file paths are fixed.
 
 # createFasta settings
 # Usage: cd Primer3 && python3 createFasta.py ../config.yaml
-create_fasta:
-  # Input file (output of primer3_core)
-  input_file: "primer3_output.list"
-
-  # Output FASTA file
-  output_file: "primer3.fa"
+# This step has no configurable settings: the input (primer3_output.list) and
+# output FASTA (primer3.fa) paths are fixed.
 
 # BLASTN database build settings
 # Usage: cd Primer3 && python3 build_blastn_db.py ../config.yaml
-# databases (one per species, using each genome) are derived from the species list.
-build_blastn_db:
-  # Database type (default: nucl)
-  dbtype: "nucl"
+# This step has no configurable settings:
+# - databases (one per species, using each genome) are derived from the species list.
+# - the database type is fixed (nucl).
 
 # BLASTN (blastn-short) settings
 # Usage: cd Primer3 && python3 run_blastn_short.py ../config.yaml
 # databases (one per species) are derived from the species list.
+# The query file is fixed (primer3.fa).
 blastn_short:
-  # Query file (primer sequences)
-  query: "primer3.fa"
-
   # Output format (default: 6 = tabular)
   outfmt: 6
 
@@ -208,23 +169,15 @@ extract_hit_regions:
 
 # Primer list creation settings
 # Usage: cd Primer3 && python3 run_make_primer_list.py ../config.yaml
-# pair_files (non-reference species) are derived from the species list; the
-# reference species' pair file is read separately by make_primerList3_Wo5000.py.
-make_primer_list:
-  # Output path for possiblePair.list (optional)
-  pair_list_file: "possiblePair.list"
+# This step has no configurable settings:
+# - pair_files (non-reference species) are derived from the species list; the
+#   reference species' pair file is read separately by make_primerList3_Wo5000.py.
+# - the output path (possiblePair.list) is fixed.
 
 # Append original sequence IDs to unique_primer3.tab
 # Usage: cd Primer3 && python3 add_original_id.py ../config.yaml
-# Reads per-species mapping files saved by step0_translation.py:
-#   {materials_dir}/{prefix}/{prefix}.list
-# and appends the original FASTA ID as a new last column of input_file.
-add_original_id:
-  # Input file (output of make_primerList3_Wo5000.py)
-  input_file: "unique_primer3.tab"
-
-  # Output file (with original ID appended as the last column)
-  output_file: "unique_primer3_with_original_id.tab"
-
-  # Path to Materials directory (relative to Primer3/)
-  materials_dir: "../Materials"
+# This step has no configurable settings: the input (unique_primer3.tab) and
+# output (unique_primer3_with_original_id.tab) table paths and the Materials
+# directory (../Materials) are fixed. Reads per-species mapping files saved by
+# step0_translation.py ({materials_dir}/{prefix}/{prefix}.list) and appends the
+# original FASTA ID as a new last column of the input file.

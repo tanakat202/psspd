@@ -8,10 +8,10 @@ Usage:
 Reads parameters from the config file (YAML format)
 and generates primer3_input.list from Target_cds.fa.
 
-Required settings:
+Settings:
     make_primer3_input:
-        input_cds: Input CDS file (Target_cds.fa)
-        output_file: Output file (primer3_input.list)
+        # input_cds and output_file are fixed (see defaults.py); the primer-size
+        # knobs below stay configurable:
         primer_opt_size: Optimal primer length (default: 20)
         primer_min_size: Minimum primer length (default: 18)
         primer_max_size: Maximum primer length (default: 27)
@@ -22,6 +22,10 @@ import sys
 import os
 import yaml
 import argparse
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import defaults
 
 
 def load_config(config_file):
@@ -56,18 +60,14 @@ def validate_config(config):
     Returns:
         dict: make_primer3_input settings
     """
-    if 'make_primer3_input' not in config:
-        print("Error: 'make_primer3_input' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The section keeps the optional primer-size knobs (primer_opt_size, etc.);
+    # it may be absent or empty.
+    primer3_input_config = config.get('make_primer3_input') or {}
 
-    primer3_input_config = config['make_primer3_input']
-
-    # Check required parameters
-    required_params = ['input_cds', 'output_file']
-    for param in required_params:
-        if param not in primer3_input_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # input_cds and output_file are fixed defaults (see defaults.py),
+    # not configurable.
+    primer3_input_config['input_cds'] = defaults.MAKE_PRIMER3_INPUT_INPUT_CDS
+    primer3_input_config['output_file'] = defaults.MAKE_PRIMER3_INPUT_OUTPUT_FILE
 
     # Check input file existence
     if not os.path.exists(primer3_input_config['input_cds']):
@@ -134,8 +134,8 @@ Examples:
 
 Config file example:
     make_primer3_input:
-        input_cds: "../GMAP/Target_cds.fa"
-        output_file: "primer3_input.list"
+        # input_cds (../GMAP/Target_cds.fa) and output_file (primer3_input.list)
+        # are fixed. Only the primer-size knobs are configurable:
         primer_opt_size: 20
         primer_min_size: 18
         primer_max_size: 27

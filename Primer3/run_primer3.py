@@ -5,14 +5,18 @@ Script to run Primer3
 Usage:
     python3 run_primer3.py config.yaml
 
-Reads input/output file paths from the primer3 section of the config file
-and runs primer3_core.
+Input/output file paths are fixed (see defaults.py); the executable may be set
+under the top-level 'executables' section.
 """
 
 import subprocess
 import sys
 import os
 import yaml
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import defaults
 
 
 def load_config(config_path: str) -> dict:
@@ -40,13 +44,11 @@ def get_executable(config, name, fallback=None):
 
 def run_primer3(config: dict) -> None:
     """Run primer3_core"""
-    primer3_config = config.get('primer3', {})
-
-    # Get settings
-    input_file = primer3_config.get('input_file', 'primer3_input.list')
-    output_file = primer3_config.get('output_file', 'primer3_output.list')
+    # Input/output list files are fixed defaults (see defaults.py).
+    input_file = defaults.PRIMER3_INPUT_FILE
+    output_file = defaults.PRIMER3_OUTPUT_FILE
     executable = get_executable(config, 'primer3_core')
-    working_dir = primer3_config.get('working_dir')
+    working_dir = (config.get('primer3') or {}).get('working_dir')
 
     # Handle working directory
     original_dir = os.getcwd()

@@ -5,14 +5,18 @@ Script to create FASTA file from Primer3 output
 Usage:
     python3 createFasta.py config.yaml
 
-Reads settings from the create_fasta section of the config file
-and outputs primer sequences in FASTA format from the Primer3 output file.
+Input/output file paths are fixed (see defaults.py); outputs primer sequences
+in FASTA format from the Primer3 output file.
 """
 
 import re
 import sys
 import os
 import yaml
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import defaults
 
 
 def load_config(config_path: str) -> dict:
@@ -23,11 +27,9 @@ def load_config(config_path: str) -> dict:
 
 def create_fasta(config: dict) -> None:
     """Create FASTA file from Primer3 output"""
-    fasta_config = config.get('create_fasta', {})
-
-    # Get settings
-    input_file = fasta_config.get('input_file', 'primer3_output.list')
-    output_file = fasta_config.get('output_file', 'primer3.fa')
+    # Input/output file paths are fixed defaults (see defaults.py).
+    input_file = defaults.CREATE_FASTA_INPUT_FILE
+    output_file = defaults.CREATE_FASTA_OUTPUT_FILE
 
     # Check input file existence
     if not os.path.exists(input_file):
