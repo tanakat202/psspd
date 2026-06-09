@@ -25,3 +25,24 @@ GMAP_DB_DIR = "GMAP"
 # GMAP query: the no-hit CDS FASTA produced by the BLASTP no-hit extraction
 # step, relative to the GMAP working directory.
 GMAP_QUERY = "../BLASTP/Nohit_cds.fa"
+
+# make_complete_list (runs in the GMAP working directory): the no-hit CDS input
+# and the resulting Target list / CDS outputs.
+MAKE_COMPLETE_LIST_INPUT_CDS = "../BLASTP/Nohit_cds.fa"
+MAKE_COMPLETE_LIST_OUTPUT_LIST = "../GMAP/Target.list"
+MAKE_COMPLETE_LIST_OUTPUT_CDS = "../GMAP/Target_cds.fa"
+
+# make_primer3_input (runs in the Primer3 working directory): the input CDS and
+# the primer3_core input list it produces. (The primer-size knobs in that
+# section stay configurable.)
+MAKE_PRIMER3_INPUT_INPUT_CDS = "../GMAP/Target_cds.fa"
+MAKE_PRIMER3_INPUT_OUTPUT_FILE = "../Primer3/primer3_input.list"
+
+# primer3_core (runs in the Primer3 working directory): input / output list files.
+PRIMER3_INPUT_FILE = "primer3_input.list"
+PRIMER3_OUTPUT_FILE = "primer3_output.list"
+
+# createFasta (runs in the Primer3 working directory): primer3_core output list
+# -> primer FASTA.
+CREATE_FASTA_INPUT_FILE = "primer3_output.list"
+CREATE_FASTA_OUTPUT_FILE = "primer3.fa"

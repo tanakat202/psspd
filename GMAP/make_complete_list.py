@@ -8,11 +8,9 @@ Usage:
 Reads parameters from the config file (YAML format),
 integrates multiple hit list files, and extracts CDS sequences that had no hits.
 
-Required settings:
-    make_complete_list:
-        input_cds: Input CDS file (Nohit_cds.fa)
-        output_list: Output list file
-        output_cds: Output CDS file
+Settings:
+    # This step has no configurable settings: the input CDS (Nohit_cds.fa) and
+    # the Target list / CDS outputs are fixed (see defaults.py).
     # hit_files are derived from the non-reference species in 'species'.
 """
 
@@ -22,9 +20,10 @@ import re
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def load_config(config_file):
@@ -59,18 +58,15 @@ def validate_config(config):
     Returns:
         dict: make_complete_list settings
     """
-    if 'make_complete_list' not in config:
-        print("Error: 'make_complete_list' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'make_complete_list' section has no configurable settings anymore;
+    # it may be absent or empty.
+    complete_config = config.get('make_complete_list') or {}
 
-    complete_config = config['make_complete_list']
-
-    # Check required parameters
-    required_params = ['input_cds', 'output_list', 'output_cds']
-    for param in required_params:
-        if param not in complete_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Input CDS and the Target list / CDS outputs are fixed defaults
+    # (see defaults.py), not configurable.
+    complete_config['input_cds'] = defaults.MAKE_COMPLETE_LIST_INPUT_CDS
+    complete_config['output_list'] = defaults.MAKE_COMPLETE_LIST_OUTPUT_LIST
+    complete_config['output_cds'] = defaults.MAKE_COMPLETE_LIST_OUTPUT_CDS
 
     # Hit-list files are derived from the non-reference species.
     try:
@@ -175,14 +171,10 @@ Examples:
     python3 make_complete_list.py config.yaml
     python3 make_complete_list.py ../config.yaml
 
-Config file example:
-    make_complete_list:
-        hit_files:
-            - "SpeciesB_hit.tab"
-            - "SpeciesC_hit.tab"
-        input_cds: "../BLASTP/Nohit_cds.fa"
-        output_list: "Target.list"
-        output_cds: "Target_cds.fa"
+This step has no configurable settings.
+    # input_cds (../BLASTP/Nohit_cds.fa) and the Target list / CDS outputs are
+    # fixed. hit_files are derived from the non-reference species in the
+    # top-level 'species' list.
         """
     )
 

@@ -115,25 +115,14 @@ gmap:
 # per-species setting is needed here.
 
 # make_complete_list.py settings
-# hit_files (non-reference species) are derived from the species list.
-make_complete_list:
-  # Input CDS file (required)
-  # CDS sequences with no BLASTP hits
-  input_cds: "../BLASTP/Nohit_cds.fa"
-
-  # Output file (required)
-  output_list: "../GMAP/Target.list"
-  output_cds: "../GMAP/Target_cds.fa"
+# This step has no configurable settings:
+# - hit_files (non-reference species) are derived from the species list.
+# - input_cds (../BLASTP/Nohit_cds.fa) and the Target list / CDS outputs are fixed.
 
 # Primer3 input file generation settings
 # Usage: cd Primer3 && python3 make_primer3_input.py ../config.yaml
+# input_cds (../GMAP/Target_cds.fa) and output_file (primer3_input.list) are fixed.
 make_primer3_input:
-  # Input CDS file (Target_cds.fa)
-  input_cds: "../GMAP/Target_cds.fa"
-
-  # Output file (primer3_input.list)
-  output_file: "../Primer3/primer3_input.list"
-
   # Primer3 parameters (optional, with default values)
   primer_opt_size: 20
   primer_min_size: 18
@@ -142,23 +131,13 @@ make_primer3_input:
 
 # Primer3 settings
 # Usage: cd Primer3 && python3 run_primer3.py ../config.yaml
-primer3:
-  # Input file path (required)
-  # Input file for primer3_core
-  input_file: "primer3_input.list"
-
-  # Output file path (required)
-  # Output destination of primer3_core
-  output_file: "primer3_output.list"
+# This step has no configurable settings: the input (primer3_input.list) and
+# output (primer3_output.list) file paths are fixed.
 
 # createFasta settings
 # Usage: cd Primer3 && python3 createFasta.py ../config.yaml
-create_fasta:
-  # Input file (output of primer3_core)
-  input_file: "primer3_output.list"
-
-  # Output FASTA file
-  output_file: "primer3.fa"
+# This step has no configurable settings: the input (primer3_output.list) and
+# output FASTA (primer3.fa) paths are fixed.
 
 # BLASTN database build settings
 # Usage: cd Primer3 && python3 build_blastn_db.py ../config.yaml
