@@ -9,7 +9,8 @@ and append it as a new last column.
 Usage:
     python3 add_original_id.py <config.yaml>
 
-Reads settings from the 'add_original_id' section of the config file.
+This step has no configurable settings: the input/output table paths and the
+Materials directory are fixed (see defaults.py).
 """
 
 import os
@@ -17,9 +18,10 @@ import re
 import sys
 import yaml
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 # First column of unique_primer3.tab is '{prefix}_{NNNNNN}_{primer_idx}',
@@ -105,10 +107,11 @@ def main():
 
     config = load_config(config_path)
 
-    add_config = config.get('add_original_id') or {}
-    input_file = add_config.get('input_file', 'unique_primer3.tab')
-    output_file = add_config.get('output_file', 'unique_primer3_with_original_id.tab')
-    materials_dir = add_config.get('materials_dir', '../Materials')
+    # Input/output table paths and the Materials directory are fixed defaults
+    # (see defaults.py), not configurable.
+    input_file = defaults.ADD_ORIGINAL_ID_INPUT_FILE
+    output_file = defaults.ADD_ORIGINAL_ID_OUTPUT_FILE
+    materials_dir = defaults.ADD_ORIGINAL_ID_MATERIALS_DIR
 
     try:
         species_list = species_config.load_species(config)

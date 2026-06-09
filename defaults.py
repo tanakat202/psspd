@@ -46,3 +46,21 @@ PRIMER3_OUTPUT_FILE = "primer3_output.list"
 # -> primer FASTA.
 CREATE_FASTA_INPUT_FILE = "primer3_output.list"
 CREATE_FASTA_OUTPUT_FILE = "primer3.fa"
+
+# makeblastdb database type for the per-species BLASTN databases (nucleotide).
+BLASTN_DB_DBTYPE = "nucl"
+
+# blastn-short query: the primer FASTA produced by createFasta, relative to the
+# Primer3 working directory.
+BLASTN_SHORT_QUERY = "primer3.fa"
+
+# make_primer_list (runs in the Primer3 working directory): output path that
+# lists the per-species pair-candidate files.
+MAKE_PRIMER_LIST_PAIR_LIST_FILE = "possiblePair.list"
+
+# add_original_id (runs in the Primer3 working directory): the primer table to
+# annotate, the annotated output, and the Materials directory holding the
+# per-species gene-number -> original-ID mapping files.
+ADD_ORIGINAL_ID_INPUT_FILE = "unique_primer3.tab"
+ADD_ORIGINAL_ID_OUTPUT_FILE = "unique_primer3_with_original_id.tab"
+ADD_ORIGINAL_ID_MATERIALS_DIR = "../Materials"

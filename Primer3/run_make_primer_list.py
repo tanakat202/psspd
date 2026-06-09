@@ -19,9 +19,10 @@ import os
 import shutil
 import yaml
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def load_config(config_path: str) -> dict:
@@ -93,8 +94,8 @@ def run_make_primer_list(config: dict, config_path: str) -> None:
         print("Error: no non-reference species to build the primer list from", file=sys.stderr)
         sys.exit(1)
 
-    # possiblePair.list path
-    pair_list_file = primer_config.get('pair_list_file', 'possiblePair.list')
+    # possiblePair.list path is a fixed default (see defaults.py).
+    pair_list_file = defaults.MAKE_PRIMER_LIST_PAIR_LIST_FILE
 
     # Script paths
     make_primer_script = primer_config.get('make_primer_script', 'make_primerList3_Wo5000.py')

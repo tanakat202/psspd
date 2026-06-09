@@ -5,8 +5,9 @@ Script to run BLASTN (blastn-short)
 Usage:
     python3 run_blastn_short.py config.yaml
 
-Reads settings from the blastn_short section of the config file
-and runs blastn -task blastn-short to search primer sequences.
+Runs blastn -task blastn-short to search primer sequences. The query file is
+fixed (defaults.BLASTN_SHORT_QUERY); the blastn_short section keeps only the
+optional outfmt / num_threads / evalue knobs.
 
 The E-value threshold is read from blastn_short.evalue (default: "10") and
 kept as a string so values such as "10" or "1E-5" pass through unchanged.
@@ -18,9 +19,10 @@ import os
 import shutil
 import yaml
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def load_config(config_path: str) -> dict:
@@ -58,8 +60,8 @@ def run_blastn_short(config: dict) -> None:
     # blastn executable path (executables section takes priority)
     executable = get_executable(config, 'blastn')
 
-    # Query file (primer sequences)
-    query = blastn_config.get('query', 'primer3.fa')
+    # Query file (primer sequences) is a fixed default (see defaults.py).
+    query = defaults.BLASTN_SHORT_QUERY
 
     # Output format (default: 6 = tabular)
     outfmt = blastn_config.get('outfmt', 6)
