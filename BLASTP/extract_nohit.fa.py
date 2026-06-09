@@ -8,11 +8,10 @@ Usage:
 Reads parameters from the config file (YAML format)
 and extracts CDS sequences from the no-hit gene list.
 
-Required settings:
-    extract_nohit:
-        nohits_file: No-hit gene list file
-        input_cds_file: Input CDS file template ({target} per reference species)
-        output_file: Output file
+Settings:
+    # This step has no configurable settings: the no-hit gene list, the input
+    # CDS file template ({target} per reference species) and the output file are
+    # fixed (see defaults.py).
     # The reference species are derived from the top-level 'species' list.
 """
 
@@ -21,9 +20,10 @@ import sys
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def load_config(config_file):
@@ -58,18 +58,15 @@ def validate_config(config):
     Returns:
         dict: extract_nohit settings
     """
-    if 'extract_nohit' not in config:
-        print("Error: 'extract_nohit' section not found in config file.", file=sys.stderr)
-        sys.exit(1)
+    # The 'extract_nohit' section has no configurable settings anymore;
+    # it may be absent or empty.
+    extract_config = config.get('extract_nohit') or {}
 
-    extract_config = config['extract_nohit']
-
-    # Check required parameters
-    required_params = ['nohits_file', 'input_cds_file', 'output_file']
-    for param in required_params:
-        if param not in extract_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # The no-hit gene list, the input CDS file template and the output file are
+    # fixed defaults (see defaults.py), not configurable.
+    extract_config['nohits_file'] = defaults.EXTRACT_NOHIT_NOHITS_FILE
+    extract_config['input_cds_file'] = defaults.EXTRACT_NOHIT_INPUT_CDS_FILE
+    extract_config['output_file'] = defaults.EXTRACT_NOHIT_OUTPUT_FILE
 
     # Reference species are derived from the species list. The
     # 'input_cds_file' value is kept as a template and expanded per species
@@ -195,12 +192,11 @@ Examples:
     python3 extract_nohit.fa.py config.yaml
     python3 extract_nohit.fa.py ../config.yaml
 
-Config file example:
-    extract_nohit:
-        nohits_file: "blastp_nohits.tab"
-        input_cds_file: "../Materials/{target}/{target}.cds.fasta"
-        output_file: "Nohit_cds.fa"
-    # The reference species ({target}) come from the top-level 'species' list.
+This step has no configurable settings.
+    # nohits_file (../BLASTP/blastp_nohits.tab), the input CDS template
+    # (../Materials/{target}/{target}.cds.fasta) and output_file
+    # (../BLASTP/Nohit_cds.fa) are fixed. The reference species ({target}) come
+    # from the top-level 'species' list.
         """
     )
 

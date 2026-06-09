@@ -85,16 +85,11 @@ blastp:
 # so no per-species setting is needed here.
 
 # extract_nohit.fa.py settings
-extract_nohit:
-  # No-hit gene list file (required)
-  nohits_file: "../BLASTP/blastp_nohits.tab"
-
-  # Input CDS file path template (required)
-  # {target} is replaced with each reference species' prefix.
-  input_cds_file: "../Materials/{target}/{target}.cds.fasta"
-
-  # Output file path (required)
-  output_file: "../BLASTP/Nohit_cds.fa"
+# This step has no configurable settings:
+# - the no-hit gene list (../BLASTP/blastp_nohits.tab), the input CDS template
+#   (../Materials/{target}/{target}.cds.fasta) and the output
+#   (../BLASTP/Nohit_cds.fa) are fixed.
+# - the reference species ({target}) are derived from the species list.
 
 # GMAP database build settings
 # This step has no configurable settings:
