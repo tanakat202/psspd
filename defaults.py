@@ -18,6 +18,15 @@ BLASTP_DBTYPE = "prot"
 # back by the downstream no-hit extraction step.
 BLASTP_OUTPUT = "blastp.out"
 
+# extract_nohit.fa.py (runs in the BLASTP working directory): the no-hit gene
+# list (produced by pick_nohit_genes.py), the per-reference-species CDS input
+# template ({target} is substituted with each reference prefix), and the
+# extracted no-hit CDS output. The output feeds GMAP_QUERY /
+# MAKE_COMPLETE_LIST_INPUT_CDS downstream, so the three must stay in sync.
+EXTRACT_NOHIT_NOHITS_FILE = "../BLASTP/blastp_nohits.tab"
+EXTRACT_NOHIT_INPUT_CDS_FILE = "../Materials/{target}/{target}.cds.fasta"
+EXTRACT_NOHIT_OUTPUT_FILE = "../BLASTP/Nohit_cds.fa"
+
 # GMAP database directory (gmap_build/gmap -D option), relative to the GMAP
 # working directory.
 GMAP_DB_DIR = "GMAP"
