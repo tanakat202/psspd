@@ -62,12 +62,10 @@ species:
 codon_file: "Codon.txt"
 
 # BLASTP database build settings
-# input_files are derived from the species list (all species' .aa.fasta).
-# The concatenated FASTA file name is fixed (all_aa.fasta); not configurable.
-build_blastp_db:
-  # Database type (default: prot)
-  # prot: Protein database, nucl: Nucleotide database
-  dbtype: "prot"
+# This step has no configurable settings:
+# - input_files are derived from the species list (all species' .aa.fasta).
+# - the concatenated FASTA file name is fixed (all_aa.fasta).
+# - the database type is fixed (prot).
 
 # BLASTP settings
 # database and query are fixed (all_aa.fasta, the same all-vs-all FASTA);

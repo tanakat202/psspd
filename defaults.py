@@ -10,3 +10,6 @@ from the config file anymore.
 # Resolved relative to the BLASTP working directory (BASE_DIR/BLASTP),
 # which is the CWD when the BLASTP scripts run.
 BLASTP_ALL_AA_FASTA = "all_aa.fasta"
+
+# makeblastdb database type for the BLASTP database (protein).
+BLASTP_DBTYPE = "prot"
