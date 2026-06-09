@@ -7,6 +7,9 @@ Usage:
 
 Reads settings from the blastn_short section of the config file
 and runs blastn -task blastn-short to search primer sequences.
+
+The E-value threshold is read from blastn_short.evalue (default: "10") and
+kept as a string so values such as "10" or "1E-5" pass through unchanged.
 """
 
 import subprocess
@@ -64,6 +67,10 @@ def run_blastn_short(config: dict) -> None:
     # Number of threads (default: 4)
     num_threads = blastn_config.get('num_threads', 4)
 
+    # E-value threshold (default: "10"). Kept as a string so values such as
+    # "10" or "1E-5" can be passed through to blastn unchanged.
+    evalue = str(blastn_config.get('evalue', '10'))
+
     # Databases (name + db + output) are derived from all species.
     try:
         databases = species_config.blastn_short_databases(config)
@@ -84,6 +91,7 @@ def run_blastn_short(config: dict) -> None:
     print(f"Query file: {query}")
     print(f"Output format: {outfmt}")
     print(f"Number of threads: {num_threads}")
+    print(f"E-value: {evalue}")
     print(f"Number of databases to search: {len(databases)}")
     print()
 
@@ -113,7 +121,7 @@ def run_blastn_short(config: dict) -> None:
             '-out', output,
             '-outfmt', str(outfmt),
             '-num_threads', str(num_threads),
-            '-evalue', '10'
+            '-evalue', evalue
         ]
         print(f"  Command: {' '.join(cmd)}")
 
