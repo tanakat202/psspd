@@ -8,15 +8,15 @@ Usage:
 Reads BLASTP parameters from the config file (YAML format)
 and runs BLASTP.
 
-Required settings:
+Settings:
     blastp:
-        database: Database file path
-        query: Query file path
         output: Output file path
         evalue: E-value threshold (optional, default: 1E-5)
         outfmt: Output format (optional, default: 6)
         num_threads: Number of threads (optional, default: 4)
         executable: BLASTP executable path (optional)
+    # database and query are fixed (defaults.BLASTP_ALL_AA_FASTA, the same
+    # all-vs-all FASTA); they are no longer configurable.
 """
 
 import sys
@@ -25,6 +25,10 @@ import subprocess
 import yaml
 import argparse
 from pathlib import Path
+
+# Make the repository-root shared module importable regardless of CWD.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -95,8 +99,13 @@ def validate_blastp_config(config):
 
     blastp_config = config['blastp']
 
+    # Database and query are the same fixed all-vs-all FASTA (see defaults.py),
+    # not configurable.
+    blastp_config['database'] = defaults.BLASTP_ALL_AA_FASTA
+    blastp_config['query'] = defaults.BLASTP_ALL_AA_FASTA
+
     # Check required parameters
-    required_params = ['database', 'query', 'output']
+    required_params = ['output']
     for param in required_params:
         if param not in blastp_config:
             print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
@@ -238,13 +247,12 @@ Examples:
 
 Config file example:
     blastp:
-        database: "BLASTP/all_aa.fasta"
-        query: "BLASTP/all_aa.fasta"
         output: "BLASTP/blastp.out"
         evalue: "1E-5"
         outfmt: 6
         num_threads: 4
         executable: "/path/to/blastp"  # Optional
+    # database and query are fixed (all_aa.fasta); not configurable.
         """
     )
 

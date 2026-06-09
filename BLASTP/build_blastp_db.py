@@ -8,11 +8,11 @@ Usage:
 Reads parameters from the config file (YAML format)
 and performs FASTA file concatenation and BLASTP database construction.
 
-Required settings:
+Settings:
     build_blastp_db:
-        output_fasta: Concatenated FASTA file path
-        makeblastdb_executable: makeblastdb executable path (optional)
         dbtype: Database type (default: prot)
+    # The concatenated FASTA file name is fixed (defaults.BLASTP_ALL_AA_FASTA);
+    # it is no longer configurable.
     # input_files are derived from the top-level 'species' list.
 """
 
@@ -23,9 +23,10 @@ import shutil
 import yaml
 import argparse
 
-# Make the repository-root shared module importable regardless of CWD.
+# Make the repository-root shared modules importable regardless of CWD.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
+import defaults
 
 
 def get_executable(config, name, fallback=None):
@@ -96,12 +97,8 @@ def validate_config(config):
 
     db_config = config['build_blastp_db']
 
-    # Check required parameters
-    required_params = ['output_fasta']
-    for param in required_params:
-        if param not in db_config:
-            print(f"Error: Required parameter '{param}' not found in config file.", file=sys.stderr)
-            sys.exit(1)
+    # Concatenated FASTA path is a fixed default (see defaults.py), not configurable.
+    db_config['output_fasta'] = defaults.BLASTP_ALL_AA_FASTA
 
     # Input FASTA files are derived from the species list (all species).
     try:
@@ -291,8 +288,8 @@ Examples:
 
 Config file example:
     build_blastp_db:
-        output_fasta: "all_aa.fasta"
         dbtype: "prot"  # Optional (default: prot)
+    # The concatenated FASTA file name is fixed (all_aa.fasta).
     # input_files are derived from the top-level 'species' list
     # (one ../Materials/{prefix}/{prefix}.aa.fasta per species).
         """
