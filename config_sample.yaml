@@ -124,6 +124,16 @@ make_primer3_input:
   primer_max_size: 27
   product_size_range: "300-500"
 
+  # Tm parameters (optional, with Primer3 default values)
+  primer_min_tm: 57.0
+  primer_opt_tm: 60.0
+  primer_max_tm: 63.0
+
+  # GC parameters (optional, with Primer3 default values)
+  primer_min_gc: 20.0
+  primer_opt_gc_percent: 50.0
+  primer_max_gc: 80.0
+
 # Primer3 settings
 # Usage: cd Primer3 && python3 run_primer3.py ../config.yaml
 # This step has no configurable settings: the input (primer3_input.list) and
