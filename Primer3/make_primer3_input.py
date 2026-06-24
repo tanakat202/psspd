@@ -16,6 +16,12 @@ Settings:
         primer_min_size: Minimum primer length (default: 18)
         primer_max_size: Maximum primer length (default: 27)
         product_size_range: Amplicon size range (default: 300-500)
+        primer_min_tm: Minimum primer Tm (default: 57.0)
+        primer_opt_tm: Optimal primer Tm (default: 60.0)
+        primer_max_tm: Maximum primer Tm (default: 63.0)
+        primer_min_gc: Minimum primer GC% (default: 20.0)
+        primer_opt_gc_percent: Optimal primer GC% (default: 50.0)
+        primer_max_gc: Maximum primer GC% (default: 80.0)
 """
 
 import sys
@@ -96,6 +102,16 @@ def make_primer3_input(config):
     primer_max_size = config.get('primer_max_size', 27)
     product_size_range = config.get('product_size_range', '300-500')
 
+    # Tm parameters (with Primer3 default values)
+    primer_min_tm = config.get('primer_min_tm', 57.0)
+    primer_opt_tm = config.get('primer_opt_tm', 60.0)
+    primer_max_tm = config.get('primer_max_tm', 63.0)
+
+    # GC parameters (with Primer3 default values)
+    primer_min_gc = config.get('primer_min_gc', 20.0)
+    primer_opt_gc_percent = config.get('primer_opt_gc_percent', 50.0)
+    primer_max_gc = config.get('primer_max_gc', 80.0)
+
     seq_count = 0
 
     with open(input_cds, 'r', encoding='utf-8') as infile:
@@ -116,6 +132,12 @@ def make_primer3_input(config):
                     outfile.write(f"PRIMER_MIN_SIZE={primer_min_size}\n")
                     outfile.write(f"PRIMER_MAX_SIZE={primer_max_size}\n")
                     outfile.write(f"PRIMER_PRODUCT_SIZE_RANGE={product_size_range}\n")
+                    outfile.write(f"PRIMER_MIN_TM={primer_min_tm}\n")
+                    outfile.write(f"PRIMER_OPT_TM={primer_opt_tm}\n")
+                    outfile.write(f"PRIMER_MAX_TM={primer_max_tm}\n")
+                    outfile.write(f"PRIMER_MIN_GC={primer_min_gc}\n")
+                    outfile.write(f"PRIMER_OPT_GC_PERCENT={primer_opt_gc_percent}\n")
+                    outfile.write(f"PRIMER_MAX_GC={primer_max_gc}\n")
                     outfile.write("=\n")
                     seq_count += 1
 
@@ -140,6 +162,12 @@ Config file example:
         primer_min_size: 18
         primer_max_size: 27
         product_size_range: "300-500"
+        primer_min_tm: 57.0
+        primer_opt_tm: 60.0
+        primer_max_tm: 63.0
+        primer_min_gc: 20.0
+        primer_opt_gc_percent: 50.0
+        primer_max_gc: 80.0
         """
     )
 
@@ -165,6 +193,12 @@ Config file example:
     print(f"PRIMER_MIN_SIZE: {primer3_input_config.get('primer_min_size', 18)}")
     print(f"PRIMER_MAX_SIZE: {primer3_input_config.get('primer_max_size', 27)}")
     print(f"PRIMER_PRODUCT_SIZE_RANGE: {primer3_input_config.get('product_size_range', '300-500')}")
+    print(f"PRIMER_MIN_TM: {primer3_input_config.get('primer_min_tm', 57.0)}")
+    print(f"PRIMER_OPT_TM: {primer3_input_config.get('primer_opt_tm', 60.0)}")
+    print(f"PRIMER_MAX_TM: {primer3_input_config.get('primer_max_tm', 63.0)}")
+    print(f"PRIMER_MIN_GC: {primer3_input_config.get('primer_min_gc', 20.0)}")
+    print(f"PRIMER_OPT_GC_PERCENT: {primer3_input_config.get('primer_opt_gc_percent', 50.0)}")
+    print(f"PRIMER_MAX_GC: {primer3_input_config.get('primer_max_gc', 80.0)}")
     print("-" * 60)
 
     seq_count = make_primer3_input(primer3_input_config)
