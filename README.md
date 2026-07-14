@@ -20,7 +20,7 @@ $ pip install pyyaml
 
 
 **How to use the pipeline**
-./run_pipeline.sh config.yaml
+./psspd.sh config.yaml
 
 You need to customize configuration file named “config.yaml” to define $PATH to tools, input files, output files and so on.
 
@@ -55,5 +55,5 @@ conda activate primer-design-tool
 
 
 ```
-./run_pipeline.sh config.yaml
+./psspd.sh config.yaml
 ```
