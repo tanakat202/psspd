@@ -7,16 +7,11 @@ This tool is a pipeline to design strain-specific primer sets based on the genom
 4.	The specificity of the primers and the amplified sequences were elucidated on all genome sequences (BLASTN) by the length of the amplified sequences.
 
 **Prerequisites**
-1.	NCBI-BLAST: blastp: 2.11.0+
-2.	GMAP: version 2017-03-17
+1.	NCBI-BLAST: 2.16.0
+2.	GMAP: version 2025.07.31
 3.	Primer3: libprimer3 release 2.6.1
-4.	Python Library
-
-```
-$ python3 -m venv venv
-$ source venv/bin/activate
-$ pip install pyyaml
-```
+4.	Python: 3.12.3
+5.	Python Library: PyYAML 6.0.3
 
 
 **How to use the pipeline**
@@ -32,7 +27,6 @@ setup test input data and Codon.txt
 
 ```
 cp -r /path/to/DL_Data Materials/
-cp /path/to/Codon.txt Materials/
 ```
 
 copy sample config
@@ -44,13 +38,13 @@ cp config_sample.yaml config.yaml
 ## create conda env
 
 ```
-conda env create -n primer-design-tool -f environment.yaml
+conda env create -n psspd -f environment.yaml
 ```
 
 ## execute with conda
 
 ```
-conda activate primer-design-tool
+conda activate psspd
 ```
 
 
