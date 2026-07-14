@@ -1,4 +1,4 @@
-name: primer-design-tool
+name: psspd
 channels:
   - conda-forge
   - bioconda
