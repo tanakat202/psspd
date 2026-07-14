@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Script to execute the entire pipeline
-# Usage: ./run_pipeline.sh <config_file> [--start-step <step>] [--end-step <step>]
-# Example: ./run_pipeline.sh config.yaml
-#          ./run_pipeline.sh config.yaml --start-step 5
-#          ./run_pipeline.sh config.yaml --start-step gmap_hit --end-step primer3_run
+# Usage: ./psspd.sh <config_file> [--start-step <step>] [--end-step <step>]
+# Example: ./psspd.sh config.yaml
+#          ./psspd.sh config.yaml --start-step 5
+#          ./psspd.sh config.yaml --start-step gmap_hit --end-step primer3_run
 
 set -e  # Stop on error
 
