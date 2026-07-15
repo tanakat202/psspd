@@ -1,9 +1,10 @@
 This tool is an offline pipeline to design strain-specific primer sets based on the genome sequences and the annotation data. When users prepare genome and coding sequences for targeted and untargeted strains, users can create primers that detect the targeted strain(s) among compared strains on the genic regions. While there are 16 analytic steps in the pipeline, only one commands can proceed all steps. 
 
 **Quick start to use psspd**
-$ git clone 
-$ conda env create -n psspd -f environment.yaml
-$ conda activate psspd
+git clone 
+conda env create -n psspd -f environment.yaml
+conda activate psspd
+./psspd.sh config.yaml
 
 **Steps of primer construction**
 1.	Homology search (BLASTP) is performed among strains users prepared. Then, genes in the targeted strains that have no homologs in the other strains were selected.
