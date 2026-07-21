@@ -6,4 +6,4 @@ __pycache__/
 *.pyc
 
 # Input data
-Materials/DL_data/
+# Materials/DL_data/
