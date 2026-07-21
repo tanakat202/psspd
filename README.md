@@ -2,9 +2,12 @@ This tool is an offline pipeline to design strain-specific primer sets based on 
 
 **Quick start to use psspd**
 git clone 
+
+```
 conda env create -n psspd -f environment.yaml
 conda activate psspd
 ./psspd.sh config.yaml
+```
 
 **Steps of primer construction**
 1.	Homology search (BLASTP) is performed among strains users prepared. Then, genes in the targeted strains that have no homologs in the other strains were selected.
