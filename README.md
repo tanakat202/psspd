@@ -33,31 +33,8 @@ You need to customize configuration file named “config.yaml” to define $PATH
 
 ## setup test data
 
-setup test input data and Codon.txt
+Setup test input data.
 
 ```
 cp -r /path/to/DL_Data Materials/
-```
-
-copy sample config
-
-```
-cp config_sample.yaml config.yaml
-```
-
-## create conda env
-
-```
-conda env create -n psspd -f environment.yaml
-```
-
-## execute with conda
-
-```
-conda activate psspd
-```
-
-
-```
-./psspd.sh config.yaml
 ```
