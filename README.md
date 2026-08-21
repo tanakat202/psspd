@@ -38,3 +38,12 @@ Setup test input data.
 ```
 cp -r /path/to/DL_Data Materials/
 ```
+
+## License
+
+Copyright 2026 Tsuyoshi TANAKA
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
+
+The external tools invoked by this pipeline (NCBI BLAST+, GMAP, Primer3) are not
+distributed as part of this software and are governed by their own licenses.
