@@ -1,0 +1,16 @@
+psspd
+Copyright 2026 Tsuyoshi TANAKA
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+This pipeline invokes the following external tools as separate processes.
+They are not distributed as part of this software, and each is governed by
+its own license:
+
+  - NCBI BLAST+ (blast)  - U.S. Government Public Domain / NCBI
+  - GMAP                 - see the GMAP distribution for its license terms
+  - Primer3              - GPL-2.0
