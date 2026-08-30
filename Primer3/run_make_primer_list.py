@@ -24,6 +24,26 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
 import defaults
 
+# Directory this script is installed in. The helper scripts it launches are
+# bundled next to it, so they are resolved here rather than from the working
+# directory (which holds the user's data, not the PSSPD scripts).
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def resolve_bundled_script(name):
+    """Resolve a helper script bundled next to this one.
+
+    A path configured explicitly still wins if it exists relative to the
+    working directory; otherwise the bundled copy is used.
+    """
+    if os.path.exists(name):
+        return name
+    if not os.path.isabs(name):
+        bundled = os.path.join(SCRIPT_DIR, name)
+        if os.path.exists(bundled):
+            return bundled
+    return name
+
 
 def load_config(config_path: str) -> dict:
     """Load config file"""
@@ -98,8 +118,12 @@ def run_make_primer_list(config: dict, config_path: str) -> None:
     pair_list_file = defaults.MAKE_PRIMER_LIST_PAIR_LIST_FILE
 
     # Script paths
-    make_primer_script = primer_config.get('make_primer_script', 'make_primerList3_Wo5000.py')
-    count_script = primer_config.get('count_script', 'count.py')
+    make_primer_script = resolve_bundled_script(
+        primer_config.get('make_primer_script', 'make_primerList3_Wo5000.py')
+    )
+    count_script = resolve_bundled_script(
+        primer_config.get('count_script', 'count.py')
+    )
 
     print(f"Python: {python_exec}")
     print(f"make_primerList3 script: {make_primer_script}")

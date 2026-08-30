@@ -7,7 +7,7 @@ git clone https://github.com/manabuishii/psspd.git
 conda env create -n psspd -f environment.yaml
 conda activate psspd
 cp config_sample.yaml config.yaml
-./psspd.sh config.yaml
+./psspd config.yaml
 ```
 
 **Steps of primer construction**
@@ -25,7 +25,7 @@ cp config_sample.yaml config.yaml
 
 
 **How to use the pipeline**
-./psspd.sh config.yaml
+./psspd config.yaml
 
 You need to customize configuration file named “config.yaml” to define $PATH to tools, input files, output files and so on.
 
@@ -38,6 +38,32 @@ Setup test input data.
 ```
 cp -r /path/to/DL_Data Materials/
 ```
+
+## Running from another directory
+
+`psspd` runs the pipeline in the directory it is invoked from (the *work
+directory*). The stage directories `Materials/`, `BLASTP/`, `GMAP/` and
+`Primer3/`, which hold the inputs, intermediate files and results, are created
+under the work directory, while the bundled Python scripts and data files are
+always looked up under the directory `psspd` itself is installed in. Nothing is
+written into the installation directory.
+
+This means the pipeline can be run outside the clone:
+
+```
+mkdir -p ~/analysis && cd ~/analysis
+mkdir -p Materials/DL_data
+cp -r /path/to/DL_Data/* Materials/DL_data/
+cp /path/to/psspd/config_sample.yaml config.yaml
+/path/to/psspd/psspd config.yaml
+```
+
+Running `./psspd config.yaml` from inside the clone still behaves exactly as
+before: there the work directory and the installation directory are the same.
+
+External tools (`blastn`, `blastp`, `makeblastdb`, `gmap`, `gmap_build`,
+`primer3_core`) are looked up on `PATH`; a path can be given explicitly per tool
+in the `executables:` section of the config file.
 
 ## License
 

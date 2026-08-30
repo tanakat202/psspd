@@ -1,10 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to execute the entire pipeline
-# Usage: ./psspd.sh <config_file> [--start-step <step>] [--end-step <step>]
-# Example: ./psspd.sh config.yaml
-#          ./psspd.sh config.yaml --start-step 5
-#          ./psspd.sh config.yaml --start-step gmap_hit --end-step primer3_run
+# Usage: ./psspd <config_file> [--start-step <step>] [--end-step <step>]
+# Example: ./psspd config.yaml
+#          ./psspd config.yaml --start-step 5
+#          ./psspd config.yaml --start-step gmap_hit --end-step primer3_run
+#
+# The pipeline runs in the *current working directory* (the "work directory"):
+# the per-stage directories (Materials/, BLASTP/, GMAP/, Primer3/) that hold the
+# inputs, intermediates and results are created under it. The bundled Python
+# scripts and data are always looked up under the installation directory of this
+# script, so PSSPD can be installed read-only (e.g. via Bioconda) and run from
+# anywhere. Running it from inside a cloned repository keeps the previous
+# behaviour, because there the work directory and the installation directory are
+# the same.
 
 set -e  # Stop on error
 
@@ -114,14 +123,17 @@ clean_status() {
 # Reset pipeline execution state across all stages.
 # Note: each stage keeps its own "$STATUS_DIR" under its own subdirectory
 # (Materials/, BLASTP/, GMAP/, Primer3/, ...), so a recursive search from the
-# script's base directory is required (the relative-path clean_status above
-# only affects the invocation directory).
+# work directory is required (the relative-path clean_status above only affects
+# the top level of the invocation directory).
+# The work directory is the current directory, which is where the stage
+# directories are created; when PSSPD is run from inside a clone this is the
+# repository root, as before.
 # Removes:
 #   - step completion markers: */${STATUS_DIR}/*.complete (directories are kept)
 #   - version marker files:    *.version
 reset_status() {
     local base_dir
-    base_dir=$(dirname "$(readlink -f "$0")")
+    base_dir=$(pwd)
 
     echo "Resetting pipeline status under: $base_dir"
     echo "------------------------------------------------------------"
@@ -325,6 +337,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
+# Resolve the config file to an absolute path *before* changing directory, so
+# that a relative path given on the command line is interpreted against the
+# directory the user invoked psspd from.
+CONFIG_PATH=$(realpath "$CONFIG_FILE")
+
 # Start time
 PIPELINE_START_TIME=$(date +%s)
 echo "============================================================"
@@ -337,9 +354,16 @@ else
 fi
 echo "============================================================"
 
-# Base directory (location of the script)
+# Installation directory (location of this script): bundled Python scripts and
+# data (Materials/Codon.txt, ...) are looked up here and never written to.
 BASE_DIR=$(dirname "$(readlink -f "$0")")
-cd "$BASE_DIR"
+
+# Work directory: where the stage directories with the user's inputs,
+# intermediates and results live. This is the directory psspd was invoked from.
+WORK_DIR=$(pwd)
+
+echo "PSSPD directory: $BASE_DIR"
+echo "Work directory:  $WORK_DIR"
 
 #-----------------------------------------------------------
 # Check that all required script files exist
@@ -471,6 +495,28 @@ if [ "$CHECK_ONLY_MODE" = true ]; then
 fi
 
 #-----------------------------------------------------------
+# Run one pipeline step.
+#
+# Enters the stage directory under the work directory (creating it when needed)
+# and runs the bundled Python script by its absolute path in the installation
+# directory.
+#
+# The stage scripts resolve their input/output files relative to their working
+# directory (see defaults.py: "all_aa.fasta", "../BLASTP/Nohit_cds.fa", ...), so
+# entering the stage directory is what makes the whole pipeline read and write
+# under the work directory. This is why the `cd` is kept: dropping it would
+# change where every intermediate file is created.
+#-----------------------------------------------------------
+run_stage_script() {
+    local stage=$1
+    local script=$2
+
+    mkdir -p "$WORK_DIR/$stage"
+    cd "$WORK_DIR/$stage"
+    python3 "$BASE_DIR/$stage/$script" "$CONFIG_PATH"
+}
+
+#-----------------------------------------------------------
 # Step 0: Materials - Translation processing
 #-----------------------------------------------------------
 if should_run_step 0; then
@@ -478,8 +524,7 @@ if should_run_step 0; then
     echo "[Step 0] Materials: step0_translation.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 0; then
-        cd "$BASE_DIR/Materials"
-        python3 step0_translation.py "$CONFIG_PATH"
+        run_stage_script Materials step0_translation.py
         mark_step_completed 0
     fi
 fi
@@ -492,8 +537,7 @@ if should_run_step 1; then
     echo "[Step 1] BLASTP: build_blastp_db.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 1; then
-        cd "$BASE_DIR/BLASTP"
-        python3 build_blastp_db.py "$CONFIG_PATH"
+        run_stage_script BLASTP build_blastp_db.py
         mark_step_completed 1
     fi
 fi
@@ -506,8 +550,7 @@ if should_run_step 2; then
     echo "[Step 2] BLASTP: run_blastp.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 2; then
-        cd "$BASE_DIR/BLASTP"
-        python3 run_blastp.py "$CONFIG_PATH"
+        run_stage_script BLASTP run_blastp.py
         mark_step_completed 2
     fi
 fi
@@ -520,8 +563,7 @@ if should_run_step 3; then
     echo "[Step 3] BLASTP: pick_nohit_genes.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 3; then
-        cd "$BASE_DIR/BLASTP"
-        python3 pick_nohit_genes.py "$CONFIG_PATH"
+        run_stage_script BLASTP pick_nohit_genes.py
         mark_step_completed 3
     fi
 fi
@@ -534,8 +576,7 @@ if should_run_step 4; then
     echo "[Step 4] BLASTP: extract_nohit.fa.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 4; then
-        cd "$BASE_DIR/BLASTP"
-        python3 extract_nohit.fa.py "$CONFIG_PATH"
+        run_stage_script BLASTP extract_nohit.fa.py
         mark_step_completed 4
     fi
 fi
@@ -548,8 +589,7 @@ if should_run_step 5; then
     echo "[Step 5] GMAP: build_gmap_db.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 5; then
-        cd "$BASE_DIR/GMAP"
-        python3 build_gmap_db.py "$CONFIG_PATH"
+        run_stage_script GMAP build_gmap_db.py
         mark_step_completed 5
     fi
 fi
@@ -562,8 +602,7 @@ if should_run_step 6; then
     echo "[Step 6] GMAP: run_gmap.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 6; then
-        cd "$BASE_DIR/GMAP"
-        python3 run_gmap.py "$CONFIG_PATH"
+        run_stage_script GMAP run_gmap.py
         mark_step_completed 6
     fi
 fi
@@ -576,8 +615,7 @@ if should_run_step 7; then
     echo "[Step 7] GMAP: make_hit_list.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 7; then
-        cd "$BASE_DIR/GMAP"
-        python3 make_hit_list.py "$CONFIG_PATH"
+        run_stage_script GMAP make_hit_list.py
         mark_step_completed 7
     fi
 fi
@@ -590,8 +628,7 @@ if should_run_step 8; then
     echo "[Step 8] GMAP: make_complete_list.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 8; then
-        cd "$BASE_DIR/GMAP"
-        python3 make_complete_list.py "$CONFIG_PATH"
+        run_stage_script GMAP make_complete_list.py
         mark_step_completed 8
     fi
 fi
@@ -604,8 +641,7 @@ if should_run_step 9; then
     echo "[Step 9] Primer3: make_primer3_input.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 9; then
-        cd "$BASE_DIR/Primer3"
-        python3 make_primer3_input.py "$CONFIG_PATH"
+        run_stage_script Primer3 make_primer3_input.py
         mark_step_completed 9
     fi
 fi
@@ -618,8 +654,7 @@ if should_run_step 10; then
     echo "[Step 10] Primer3: run_primer3.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 10; then
-        cd "$BASE_DIR/Primer3"
-        python3 run_primer3.py "$CONFIG_PATH"
+        run_stage_script Primer3 run_primer3.py
         mark_step_completed 10
     fi
 fi
@@ -632,8 +667,7 @@ if should_run_step 11; then
     echo "[Step 11] Primer3: createFasta.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 11; then
-        cd "$BASE_DIR/Primer3"
-        python3 createFasta.py "$CONFIG_PATH"
+        run_stage_script Primer3 createFasta.py
         mark_step_completed 11
     fi
 fi
@@ -646,8 +680,7 @@ if should_run_step 12; then
     echo "[Step 12] Primer3: build_blastn_db.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 12; then
-        cd "$BASE_DIR/Primer3"
-        python3 build_blastn_db.py "$CONFIG_PATH"
+        run_stage_script Primer3 build_blastn_db.py
         mark_step_completed 12
     fi
 fi
@@ -660,8 +693,7 @@ if should_run_step 13; then
     echo "[Step 13] Primer3: run_blastn_short.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 13; then
-        cd "$BASE_DIR/Primer3"
-        python3 run_blastn_short.py "$CONFIG_PATH"
+        run_stage_script Primer3 run_blastn_short.py
         mark_step_completed 13
     fi
 fi
@@ -674,8 +706,7 @@ if should_run_step 14; then
     echo "[Step 14] Primer3: run_extract_hit_regions.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 14; then
-        cd "$BASE_DIR/Primer3"
-        python3 run_extract_hit_regions.py "$CONFIG_PATH"
+        run_stage_script Primer3 run_extract_hit_regions.py
         mark_step_completed 14
     fi
 fi
@@ -688,8 +719,7 @@ if should_run_step 15; then
     echo "[Step 15] Primer3: run_make_primer_list.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 15; then
-        cd "$BASE_DIR/Primer3"
-        python3 run_make_primer_list.py "$CONFIG_PATH"
+        run_stage_script Primer3 run_make_primer_list.py
         mark_step_completed 15
     fi
 fi
@@ -702,8 +732,7 @@ if should_run_step 16; then
     echo "[Step 16] Primer3: add_original_id.py"
     echo "------------------------------------------------------------"
     if ! check_and_ask_skip 16; then
-        cd "$BASE_DIR/Primer3"
-        python3 add_original_id.py "$CONFIG_PATH"
+        run_stage_script Primer3 add_original_id.py
         mark_step_completed 16
     fi
 fi
