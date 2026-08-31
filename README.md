@@ -3,7 +3,7 @@ This tool is an offline pipeline to design strain-specific primer sets based on 
 **Quick start to use psspd**
 
 ```
-git clone https://github.com/manabuishii/psspd.git
+git clone https://github.com/tanakat202/psspd.git
 conda env create -n psspd -f environment.yaml
 conda activate psspd
 cp config_sample.yaml config.yaml
