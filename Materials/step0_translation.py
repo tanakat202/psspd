@@ -9,8 +9,29 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
 
-# Fixed directory for species input files (relative to Materials/)
+# Fixed directory for species input files (relative to the working directory,
+# i.e. the Materials/ directory under the user's work directory)
 INPUT_DIR = "DL_data"
+
+# Directory this script is installed in. Used only to locate data bundled with
+# PSSPD (Codon.txt), never for the user's inputs or outputs.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def resolve_codon_file(codon_file):
+    """Resolve the codon table path.
+
+    A path given in the config wins if it exists relative to the working
+    directory (or is absolute); otherwise fall back to the copy bundled with
+    PSSPD, so the pipeline also works when run outside the repository.
+    """
+    if os.path.exists(codon_file):
+        return codon_file
+    if not os.path.isabs(codon_file):
+        bundled = os.path.join(SCRIPT_DIR, codon_file)
+        if os.path.exists(bundled):
+            return bundled
+    return codon_file
 
 
 def resolve_input_file(filename):
@@ -133,6 +154,7 @@ def main():
         sys.exit(1)
 
     # Load codon table
+    codon_file = resolve_codon_file(codon_file)
     codon_dict = {}
     try:
         with open(codon_file, "r") as f:

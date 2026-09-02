@@ -23,6 +23,26 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import species_config
 
+# Directory this script is installed in. The helper scripts it launches are
+# bundled next to it, so they are resolved here rather than from the working
+# directory (which holds the user's data, not the PSSPD scripts).
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def resolve_bundled_script(name):
+    """Resolve a helper script bundled next to this one.
+
+    A path configured explicitly still wins if it exists relative to the
+    working directory; otherwise the bundled copy is used.
+    """
+    if os.path.exists(name):
+        return name
+    if not os.path.isabs(name):
+        bundled = os.path.join(SCRIPT_DIR, name)
+        if os.path.exists(bundled):
+            return bundled
+    return name
+
 
 def load_config(config_path: str) -> dict:
     """Load config file"""
@@ -82,8 +102,12 @@ def run_extract_hit_regions(config: dict) -> None:
     python_exec = get_executable(config, 'python3')
 
     # Script paths
-    extract_script = hit_config.get('extract_script', 'extract_hit_regions.py')
-    pair_script = hit_config.get('pair_script', 'make_possiblePair.py')
+    extract_script = resolve_bundled_script(
+        hit_config.get('extract_script', 'extract_hit_regions.py')
+    )
+    pair_script = resolve_bundled_script(
+        hit_config.get('pair_script', 'make_possiblePair.py')
+    )
 
     # Maximum allowed distance (bp) between primer pairs (default: 5000)
     max_distance = hit_config.get('max_distance', 5000)
