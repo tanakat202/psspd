@@ -2,14 +2,28 @@ This tool is an offline pipeline to design strain-specific primer sets based on 
 
 **Quick start to use psspd**
 
+psspd is available from [Bioconda](https://bioconda.github.io/recipes/psspd/README.html).
+The `conda-forge` channel is required as well.
+
 ```
-git clone https://github.com/tanakat202/psspd.git
-cd psspd
-conda env create -n psspd -f environment.yaml
+conda create -n psspd -c conda-forge -c bioconda psspd
 conda activate psspd
-cp config_sample.yaml config.yaml
-./psspd config.yaml
+mkdir -p ~/analysis/Materials/DL_data && cd ~/analysis
+cp -r /path/to/DL_Data/* Materials/DL_data/
+cp "$CONDA_PREFIX/share/psspd/config_sample.yaml" config.yaml
+psspd config.yaml
 ```
+
+If `cp` cannot find the bundled `config_sample.yaml`, you can download it
+instead. Replace `1.1.1` with the installed version shown by
+`conda list psspd`:
+
+```
+curl -fsSL https://raw.githubusercontent.com/tanakat202/psspd/1.1.1/config_sample.yaml -o config.yaml
+```
+
+To run psspd from a source checkout instead, see the
+[developer guide](docs/DEVELOPMENT.md).
 
 **Steps of primer construction**
 1.	Homology search (BLASTP) is performed among strains users prepared. Then, genes in the targeted strains that have no homologs in the other strains were selected.
@@ -26,45 +40,45 @@ cp config_sample.yaml config.yaml
 
 
 **How to use the pipeline**
-./psspd config.yaml
+psspd config.yaml
 
 You need to customize configuration file named “config.yaml” to define $PATH to tools, input files, output files and so on.
 
-## setup conda
+## Input data
 
-## setup test data
-
-Setup test input data.
+Run psspd in a work directory of your choice (`~/analysis` in the Quick start)
+and place the input FASTA files under `Materials/DL_data/` there:
 
 ```
-cp -r /path/to/DL_Data Materials/
+mkdir -p Materials/DL_data
+cp -r /path/to/DL_Data/* Materials/DL_data/
 ```
 
-## Running from another directory
+The file names must match the `cds:` and `genome:` entries of the species list
+in `config.yaml`.
+
+## Work directory
 
 `psspd` runs the pipeline in the directory it is invoked from (the *work
 directory*). The stage directories `Materials/`, `BLASTP/`, `GMAP/` and
 `Primer3/`, which hold the inputs, intermediate files and results, are created
 under the work directory, while the bundled Python scripts and data files are
-always looked up under the directory `psspd` itself is installed in. Nothing is
-written into the installation directory.
-
-This means the pipeline can be run outside the clone:
+always looked up under the directory `psspd` is installed in
+(`$CONDA_PREFIX/share/psspd/` for the Bioconda package). Nothing is written
+into the installation directory, so you can use any number of work directories
+with one installation:
 
 ```
-mkdir -p ~/analysis && cd ~/analysis
-mkdir -p Materials/DL_data
-cp -r /path/to/DL_Data/* Materials/DL_data/
-cp /path/to/psspd/config_sample.yaml config.yaml
-/path/to/psspd/psspd config.yaml
+mkdir -p ~/analysis2/Materials/DL_data && cd ~/analysis2
+cp -r /path/to/other/DL_Data/* Materials/DL_data/
+cp "$CONDA_PREFIX/share/psspd/config_sample.yaml" config.yaml
+psspd config.yaml
 ```
-
-Running `./psspd config.yaml` from inside the clone still behaves exactly as
-before: there the work directory and the installation directory are the same.
 
 External tools (`blastn`, `blastp`, `makeblastdb`, `gmap`, `gmap_build`,
-`primer3_core`) are looked up on `PATH`; a path can be given explicitly per tool
-in the `executables:` section of the config file.
+`primer3_core`) are looked up on `PATH`; the Bioconda package installs them
+into the same environment. A path can be given explicitly per tool in the
+`executables:` section of the config file.
 
 ## License
 
