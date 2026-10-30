@@ -5,7 +5,7 @@ This tool is an offline pipeline to design strain-specific primer sets based on 
 psspd is available from [Bioconda](https://bioconda.github.io/recipes/psspd/README.html).
 The `conda-forge` channel is required as well.
 
-```
+```sh
 conda create -n psspd -c conda-forge -c bioconda psspd
 conda activate psspd
 mkdir -p ~/analysis/Materials/DL_data && cd ~/analysis
@@ -18,8 +18,10 @@ If `cp` cannot find the bundled `config_sample.yaml`, you can download it
 instead. Replace `1.1.1` with the installed version shown by
 `conda list psspd`:
 
-```
-curl -fsSL https://raw.githubusercontent.com/tanakat202/psspd/1.1.1/config_sample.yaml -o config.yaml
+```sh
+curl -fsSL \
+  https://raw.githubusercontent.com/tanakat202/psspd/1.1.1/config_sample.yaml \
+  -o config.yaml
 ```
 
 To run psspd from a source checkout instead, see the
@@ -49,7 +51,7 @@ You need to customize configuration file named “config.yaml” to define $PATH
 Run psspd in a work directory of your choice (`~/analysis` in the Quick start)
 and place the input FASTA files under `Materials/DL_data/` there:
 
-```
+```sh
 mkdir -p Materials/DL_data
 cp -r /path/to/DL_Data/* Materials/DL_data/
 ```
@@ -68,7 +70,7 @@ always looked up under the directory `psspd` is installed in
 into the installation directory, so you can use any number of work directories
 with one installation:
 
-```
+```sh
 mkdir -p ~/analysis2/Materials/DL_data && cd ~/analysis2
 cp -r /path/to/other/DL_Data/* Materials/DL_data/
 cp "$CONDA_PREFIX/share/psspd/config_sample.yaml" config.yaml
