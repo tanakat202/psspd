@@ -1,4 +1,4 @@
-This tool is an offline pipeline to design strain-specific primer sets based on the genome sequences and the annotation data. When users prepare genome and coding sequences for targeted and untargeted strains, users can create primers that detect the targeted strain(s) among compared strains on the genic regions. While there are 16 analytic steps in the pipeline, only one commands can proceed all steps. 
+This tool is an offline pipeline to design strain-specific primer sets based on the genome sequences and the annotation data. When users prepare genome and coding sequences for targeted and untargeted strains, users can create primers that detect the targeted strain(s) among compared strains on the genic regions. While there are 16 analytic steps in the pipeline, only one command can proceed all steps.
 
 **Quick start to use psspd**
 
@@ -44,7 +44,10 @@ To run psspd from a source checkout instead, see the
 **How to use the pipeline**
 psspd config.yaml
 
-You need to customize configuration file named “config.yaml” to define $PATH to tools, input files, output files and so on.
+You need to customize the configuration file `config.yaml` to define input
+files, output files and so on. External tools are looked up on `PATH`; the
+Bioconda package installs them into the same environment. To use a specific
+executable, set its path in the `executables:` section of `config.yaml`.
 
 ## Input data
 
