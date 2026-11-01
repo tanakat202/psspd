@@ -54,8 +54,11 @@ To run psspd from a source checkout instead, see the
 4. Python: 3.12.3
 5. Python Library: PyYAML 6.0.3
 
-**How to use the pipeline**
+## How to use the pipeline
+
+```sh
 psspd config.yaml
+```
 
 You need to customize the configuration file `config.yaml` to define input
 files, output files and so on. External tools are looked up on `PATH`; the
