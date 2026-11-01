@@ -1,6 +1,13 @@
-This tool is an offline pipeline to design strain-specific primer sets based on the genome sequences and the annotation data. When users prepare genome and coding sequences for targeted and untargeted strains, users can create primers that detect the targeted strain(s) among compared strains on the genic regions. While there are 16 analytic steps in the pipeline, only one command can proceed all steps.
+# psspd
 
-**Quick start to use psspd**
+This tool is an offline pipeline to design strain-specific primer sets based on
+the genome sequences and the annotation data. When users prepare genome and
+coding sequences for targeted and untargeted strains, users can create primers
+that detect the targeted strain(s) among compared strains on the genic regions.
+While there are 16 analytic steps in the pipeline, only one command can proceed
+all steps.
+
+## Quick start to use psspd
 
 psspd is available from [Bioconda](https://bioconda.github.io/recipes/psspd/README.html).
 The `conda-forge` channel is required as well.
@@ -27,19 +34,25 @@ curl -fsSL \
 To run psspd from a source checkout instead, see the
 [developer guide](docs/DEVELOPMENT.md).
 
-**Steps of primer construction**
-1.	Homology search (BLASTP) is performed among strains users prepared. Then, genes in the targeted strains that have no homologs in the other strains were selected.
-2.	Homologous regions of the selected genes are searched in the genome sequences of the other strains to confirm the specificity of the genes (GMAP).
-3.	On the genes, primers were constructed (Primer3).
-4.	The specificity of the primers and the amplified sequences were elucidated on all genome sequences (BLASTN) by the length of the amplified sequences.
+## Steps of primer construction
 
-**Prerequisites**
-1.	NCBI-BLAST: 2.16.0
-2.	GMAP: version 2025.07.31
-3.	Primer3: libprimer3 release 2.6.1
-4.	Python: 3.12.3
-5.	Python Library: PyYAML 6.0.3
+1. Homology search (BLASTP) is performed among strains users prepared. Then,
+   genes in the targeted strains that have no homologs in the other strains
+   were selected.
+2. Homologous regions of the selected genes are searched in the genome
+   sequences of the other strains to confirm the specificity of the genes
+   (GMAP).
+3. On the genes, primers were constructed (Primer3).
+4. The specificity of the primers and the amplified sequences were elucidated
+   on all genome sequences (BLASTN) by the length of the amplified sequences.
 
+## Prerequisites
+
+1. NCBI-BLAST: 2.16.0
+2. GMAP: version 2025.07.31
+3. Primer3: libprimer3 release 2.6.1
+4. Python: 3.12.3
+5. Python Library: PyYAML 6.0.3
 
 **How to use the pipeline**
 psspd config.yaml
@@ -89,7 +102,8 @@ into the same environment. A path can be given explicitly per tool in the
 
 Copyright 2026 Tsuyoshi TANAKA
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and
+[NOTICE](NOTICE) for details.
 
 The external tools invoked by this pipeline (NCBI BLAST+, GMAP, Primer3) are not
 distributed as part of this software and are governed by their own licenses.
